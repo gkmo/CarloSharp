@@ -21,10 +21,15 @@ namespace Carlo.Net
             _app = app;
 
             _page = page;
-            _page.Close += OnClose;
+            _page.Close += OnCloseAsync;
             _page.DOMContentLoaded += OnDocumentLoaded;
 
             _options = options;
+        }
+
+        public string LoadURI
+        {
+            get { return _loadURI; }
         }
 
         internal async Task InitAsync()
@@ -100,37 +105,26 @@ namespace Carlo.Net
             await SetBoundsAsync(bounds);
         }
 
-        private async Task SetBoundsAsync(JObject bounds)
-        {
-            var args = new JObject
-            {
-                { "windowId", _windowId },
-                { "bounds", bounds }
-            };
-
-            await _app.Session.SendAsync("Browser.setWindowBounds", args);
-        }
-
         private void OnDocumentLoaded(object sender, EventArgs e)
         {
 
         }
 
-        private void OnClose(object sender, EventArgs e)
+        private async void OnCloseAsync(object sender, EventArgs e)
         {
-
+            await _app.WindownClosedAsync(this);
         }
 
         internal async void LoadAsync(string uri, Options options)
         {
-            //debugApp('Load page', uri);
+            _app.DebugApp("Load page", uri);
 
             _loadURI = uri;
             _options = options;
 
             await InitializeInterception();
 
-            //debugApp('Navigating the page to', this.loadURI_);
+            _app.DebugApp("Navigating the page to", _loadURI);
 
             //const result = new Promise(f => this.domContentLoadedCallback_ = f);
             // Await here to process exceptions.
@@ -155,27 +149,72 @@ namespace Carlo.Net
         private async Task InitializeInterception()
         {
             //throw new NotImplementedException();
+        }        
+
+        public async Task FullscreenAsync()
+        {
+            await SetWindowStateAsync("fullscreen");
         }
 
-        public async Task ExposeFunctionAsync(string name, Action function)
+        public async Task MaximizeAsync()
         {
-            await _page.ExposeFunctionAsync(name, function);
+            await SetWindowStateAsync("maximized");
         }
 
-        public async Task ExposeFunctionAsync<T>(string name, Action<T> action)
+        public async Task MinimizeAsync()
         {
-            var function = new Func<T, object>((obj) =>
-            {
-                action(obj);
-                return null;
-            });
+            await SetWindowStateAsync("minimized");
+        }
 
-            await _page.ExposeFunctionAsync(name, function);
+        public async Task CloseAsync()
+        {
+            await _page.CloseAsync();
         }
 
         public async Task ExposeFunctionAsync<TResult>(string name, Func<TResult> function)
         {
             await _page.ExposeFunctionAsync(name, function);
         }
+
+        public async Task ExposeFunctionAsync<T, TResult>(string name, Func<T, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task ExposeFunctionAsync<T1, T2, TResult>(string name, Func<T1, T2, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task ExposeFunctionAsync<T1, T2, T3, TResult>(string name, Func<T1, T2, T3, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task ExposeFunctionAsync<T1, T2, T3, T4, TResult>(string name, Func<T1, T2, T3, T4, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        private async Task SetWindowStateAsync(string state)
+        {
+            var bounds = new JObject
+            {
+                { "windowState", state }
+            };
+
+            await SetBoundsAsync(bounds);
+        }
+
+        private async Task SetBoundsAsync(JObject bounds)
+        {
+            var args = new JObject
+            {
+                { "windowId", _windowId },
+                { "bounds", bounds }
+            };
+
+            await _app.Session.SendAsync("Browser.setWindowBounds", args);
+        }        
     }
 }

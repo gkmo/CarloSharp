@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Newtonsoft.Json.Linq;
 using PuppeteerSharp;
 
 namespace Carlo.Net
@@ -12,19 +15,21 @@ namespace Carlo.Net
     {
         private readonly Browser _browser;
         private readonly Options _options;
-        private readonly Dictionary<Page, Window> _windows;
+        private readonly List<Window> _windows;
         private readonly Dictionary<string, object> _exposedFunctions;
         private readonly Dictionary<string, Tuple<Options, Action<Window>>> _pendingWindows;
-        
+        private readonly List<IWebHost> _hosts = new List<IWebHost>();
+
         private int _windowSeq;
         private List<string> _www;
         private CDPSession _session;
+        private bool _exited;
 
         public App(Browser browser, Options options)
         {
             _browser = browser;
             _options = options;
-            _windows = new Dictionary<Page, Window>();
+            _windows = new List<Window>();
             _exposedFunctions = new Dictionary<string, object>();
             _pendingWindows = new Dictionary<string, Tuple<Options, Action<Window>>>();
             _windowSeq = 0;
@@ -40,13 +45,13 @@ namespace Carlo.Net
         {
             get
             {
-                return _windows.Values.FirstOrDefault();
+                return _windows.FirstOrDefault();
             }
         }
 
         internal async Task InitAsync()
         {
-            //debugApp('Configuring browser');
+            DebugApp("Configuring browser");
 
             var createSessionTask = _browser.Target.CreateCDPSessionAsync();
 
@@ -68,7 +73,7 @@ namespace Carlo.Net
 
             if (_options.Icon != null)
             {
-                SetIcon(_options.Icon);
+                await SetIconAsync(_options.Icon);
             }
 
             _browser.TargetCreated += OnBrowserTargetCreated;
@@ -82,7 +87,9 @@ namespace Carlo.Net
         private async Task OnPageCreatedAsync(Page page)
         {
             var url = page.Url;
-            //debugApp('Page created at', url);
+
+            DebugApp("Page created at", url);
+
             var seq = url.StartsWith("about:blank?seq=") ? url.Substring(0, "about:blank?seq=".Length) : "";
             var p = _pendingWindows[seq];
             var options = p.Item1;
@@ -99,11 +106,44 @@ namespace Carlo.Net
 
             await window.InitAsync();
 
-            _windows.Add(page, window);
+            _windows.Add(window);
 
             callback?.Invoke(window);
 
             RaiseWindowCreatedEvent(window);
+        }
+
+        internal async Task WindownClosedAsync(Window window)
+        {
+            DebugApp("Window closed", window.LoadURI);
+
+            _windows.Remove(window);
+
+            if (_windows.Count == 0)
+            {
+                await ExitAsync();
+            }
+        }
+
+        public async Task ExitAsync()
+        {
+            DebugApp("App.exit...");
+
+            if (_exited)
+            {
+                return;
+            }
+
+            _exited = true;
+
+            await _browser.CloseAsync();
+
+            foreach (var host in _hosts)
+            {
+                await host.StopAsync();
+            }
+
+            OnExit?.Invoke(this, EventArgs.Empty);
         }
 
         private void RaiseWindowCreatedEvent(Window window)
@@ -137,16 +177,18 @@ namespace Carlo.Net
         {
             var host = CreateWebHostBuilder(folderPath).Build();
 
+            _hosts.Add(host);
+
             await host.RunAsync();
         }
 
-        public async Task ExposeFunctionAsync(string name, Action function)
+        public async Task ExposeFunctionAsync<T, TResult>(string name, Func<T, TResult> function)
         {
             _exposedFunctions.Add(name, function);
 
             var tasks = new List<Task>(_windows.Count);
 
-            foreach (var window in _windows.Values)
+            foreach (var window in _windows)
             {
                 tasks.Add(window.ExposeFunctionAsync(name, function));
             }
@@ -154,13 +196,13 @@ namespace Carlo.Net
             await Task.WhenAll(tasks.ToArray());
         }
 
-        public async Task ExposeFunctionAsync<T>(string name, Action<T> function)
+        public async Task ExposeFunctionAsync<T>(string name, Func<T> function)
         {
             _exposedFunctions.Add(name, function);
 
             var tasks = new List<Task>(_windows.Count);
 
-            foreach (var window in _windows.Values)
+            foreach (var window in _windows)
             {
                 tasks.Add(window.ExposeFunctionAsync(name, function));
             }
@@ -168,9 +210,16 @@ namespace Carlo.Net
             await Task.WhenAll(tasks.ToArray());
         }
 
-        public void SetIcon(string uri)
+        public async Task SetIconAsync(string icon)
         {
+            var buffer = File.ReadAllBytes(icon);
 
+            var iconObject = new JObject()
+            {
+                { "image", Convert.ToBase64String(buffer) }
+            };
+
+            await _session.SendAsync("Browser.setDockTile", iconObject);       
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string folderPath)
@@ -181,6 +230,11 @@ namespace Carlo.Net
                     config.Properties.Add("AppFolderPath", folderPath);      
                 })
                 .UseStartup<Startup>();
+        }
+
+        internal void DebugApp(string message, params string[] args)
+        {
+            Console.WriteLine(message, args);
         }
     }
 }

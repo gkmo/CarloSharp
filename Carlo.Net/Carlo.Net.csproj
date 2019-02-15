@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Guilherme Oliveira</Authors>
+    <PackageProjectUrl>https://github.com/gkmo/carlo.net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/gkmo/carlo.net</RepositoryUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Web rendering surface for .NET applications</Description>
+    <PackageTags>Chromium Desktop HTML5 UI</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

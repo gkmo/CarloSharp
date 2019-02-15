@@ -7,8 +7,6 @@ namespace Photobooth
 {
     class Program
     {
-        static ManualResetEvent waitAppExit = new ManualResetEvent(false);
-
         static void Main(string[] args)
         {
             var app = Carlo.Net.Carlo.LaunchAsync(new Options()
@@ -19,8 +17,6 @@ namespace Photobooth
                 Channel = new string[] { "stable" }
             }).Result;
 
-            app.OnExit += App_OnExit;
-
             var hostTask = app.ServeFolderAsync("./www");
 
             app.ExposeFunctionAsync<string>("saveImage", SaveImage).Wait();
@@ -28,11 +24,6 @@ namespace Photobooth
             app.Load("index.html");
 
             hostTask.Wait();
-        }
-
-        private static void App_OnExit(object sender, EventArgs e)
-        {
-            waitAppExit.Set();
         }
 
         private static void SaveImage(string base64)

@@ -217,7 +217,6 @@ namespace Carlo.Net
             return result;
         }
 
-
         private static string DownloadChromium(Options options)
         {
             throw new NotImplementedException();
@@ -227,7 +226,5 @@ namespace Carlo.Net
         {
             return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
         }
-
-
     }
 }
