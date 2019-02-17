@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static System.Environment;
 
 namespace Carlo.Net
 {
@@ -137,13 +140,18 @@ namespace Carlo.Net
 
             // Look into the directories where .desktop are saved on gnome based distro's
             var desktopInstallationFolders = new string[] {
-              Path.Combine("require('os').homedir()", ".local/share/applications/"),
+              Path.Combine(Environment.GetFolderPath(SpecialFolder.UserProfile), ".local/share/applications/"),
               "/usr/share/applications/"
             };
 
             foreach (var folder in desktopInstallationFolders)
             {
-                installations.Add(FindChromeExecutables(folder));
+                var executable = FindChromeExecutables(folder);
+                
+                if (!string.IsNullOrEmpty(executable))
+                {
+                    installations.Add(executable);
+                }
             }
 
             // Look for google-chrome(-stable) & chromium(-browser) executables by using the which command
@@ -153,41 +161,94 @@ namespace Carlo.Net
               "chromium-browser",
               "chromium"
             };
-            //            executables.forEach(executable => {
-            //            try
-            //            {
-            //                const chromePath =
-            //                    execFileSync('which', [executable], { stdio: 'pipe'}).toString().split(newLineRegex)[0];
-            //            if (canAccess(chromePath))
-            //                installations.push(chromePath);
-            //        } catch (e) {
-            //      // Not installed.
-            //    }
-            //});
+            
+            foreach (var executable in executables)
+            {
+                var chromePath = ExecuteBashCommand($"which {executable}").Split('\n').FirstOrDefault();
 
-            //  if (!installations.length)
-            //    throw new Error('The environment variable CHROME_PATH must be set to executable of a build of Chromium version 54.0 or later.');
+                if (!string.IsNullOrEmpty(chromePath))
+                {
+                    installations.Add(chromePath);
+                }                
+            }
+            
+            if (installations.Count == 0)
+            {
+                throw new Exception("The environment variable CHROME_PATH must be set to executable of a build of Chromium version 54.0 or later.");
+            }
 
-            //const priorities = [
-            //    {regex: / chrome - wrapper$/, weight: 51},
-            //    {regex: /google-chrome-stable$/, weight: 50},
-            //    {regex: /google-chrome$/, weight: 49},
-            //    {regex: /chromium-browser$/, weight: 48},
-            //    {regex: /chromium$/, weight: 47},
-            //  ];
+            var priorities = new Dictionary<string, int>(){
+               {"/chrome-wrapper$/", 51},
+               {"/google-chrome-stable$/", 50},
+               {"/google-chrome$/", 49},
+               {"/chromium-browser$/", 48},
+               {"/chromium$/", 47}
+             };
 
-            //  if (process.env.CHROME_PATH)
-            //    priorities.unshift({ regex: new RegExp(`${ process.env.CHROME_PATH }`), weight: 101});
+            var environmentChromePath = Environment.GetEnvironmentVariable("CHROME_PATH");
 
-            //  return sort(uniq(installations.filter(Boolean)), priorities)[0];
-            //}
+            if (!string.IsNullOrEmpty(environmentChromePath))
+            {
+                priorities.Add(environmentChromePath, 101);
+            }
+            
+            return Sort(installations, priorities).FirstOrDefault();
+        }
 
-            return installations.FirstOrDefault();
+        private static IList<string> Sort(List<string> installations, Dictionary<string, int> priorities) 
+        {
+            const int defaultPriority = 10;
+
+            var result = new List<Tuple<string, int>>();
+
+            foreach (var installation in installations)
+            {
+                bool added = false;
+
+                foreach (var priority in priorities)
+                {
+                    if (Regex.IsMatch(installation, priority.Key))
+                    {
+                        result.Add(new Tuple<string, int>(installation, priority.Value));
+                        added = true;
+                        break;
+                    }
+                }
+
+                if (!added)
+                {
+                    result.Add(new Tuple<string, int>(installation, defaultPriority));
+                }
+            }
+
+            return result.OrderByDescending(i => i.Item2).Select(i => i.Item1).ToList();
+        }
+
+        private static string ExecuteBashCommand(string command)
+        {
+            command = command.Replace("\"","\"\"");
+
+            var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    Arguments = "-c \""+ command + "\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            proc.Start();
+            proc.WaitForExit();
+
+            return proc.StandardOutput.ReadToEnd();
         }
 
         private static string FindChromeExecutables(string folder)
         {
-            throw new NotImplementedException();
+            return null;
         }
 
         private static string FindChromeWin32(bool canary)
