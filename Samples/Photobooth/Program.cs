@@ -1,4 +1,5 @@
 ﻿using Carlo.Net;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -19,16 +20,18 @@ namespace Photobooth
 
             var hostTask = app.ServeFolderAsync("./www");
 
-            app.ExposeFunctionAsync<string>("saveImage", SaveImage).Wait();
+            app.ExposeFunctionAsync<string, JObject>("saveImage", SaveImage).Wait();
 
             app.Load("index.html");
 
             hostTask.Wait();
         }
 
-        private static void SaveImage(string base64)
+        private static JObject SaveImage(string base64)
         {
             Console.WriteLine(base64);
+
+            return null;
         }
     }
 }
