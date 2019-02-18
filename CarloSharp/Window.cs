@@ -3,7 +3,7 @@ using PuppeteerSharp;
 using System;
 using System.Threading.Tasks;
 
-namespace Carlo.Net
+namespace CarloSharp
 {
     public class Window
     {

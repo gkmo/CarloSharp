@@ -5,11 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using PuppeteerSharp;
 
-namespace Carlo.Net
+namespace CarloSharp
 {
     public class App
     {
@@ -225,11 +227,21 @@ namespace Carlo.Net
         public static IWebHostBuilder CreateWebHostBuilder(string folderPath)
         {
             return WebHost.CreateDefaultBuilder()
-                .ConfigureAppConfiguration((context, config) =>
+                .UseUrls("http://*:5000;http://localhost:5001;https://hostname:5002")
+                .ConfigureServices(s => { s.AddSpaStaticFiles(c => c.RootPath = folderPath); })
+                .Configure(app =>
                 {
-                    config.Properties.Add("AppFolderPath", folderPath);      
-                })
-                .UseStartup<Startup>();
+                    app.UseExceptionHandler("/Error");
+                    app.UseHsts();
+
+                    app.UseStaticFiles();
+                    app.UseSpaStaticFiles();
+
+                    app.UseSpa(spa =>
+                    {
+                        spa.Options.SourcePath = folderPath;
+                    });
+                });
         }
 
         internal void DebugApp(string message, params string[] args)

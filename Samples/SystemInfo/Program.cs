@@ -1,8 +1,7 @@
-﻿using Carlo.Net;
+﻿using CarloSharp;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Drawing;
-using System.IO;
 
 namespace SystemInfo
 {
@@ -10,7 +9,7 @@ namespace SystemInfo
     {
         static void Main(string[] args)
         {
-            var app = Carlo.Net.Carlo.LaunchAsync(new Options()
+            var app = Carlo.LaunchAsync(new Options()
             {
                 BgColor = Color.FromArgb(0x2b, 0x2e, 0x3b),
                 Title = "Systeminfo App",

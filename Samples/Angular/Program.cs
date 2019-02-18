@@ -1,0 +1,27 @@
+using CarloSharp.Samples.Angular.Controllers;
+using CarloSharp;
+
+namespace CarloNet.Samples.Angular
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var app = Carlo.LaunchAsync(new Options()
+            {
+                Title = "Carlo.Net - Angular",
+                Width = 1024,
+                Height = 600,
+                Channel = new string[] { "stable" }
+            }).Result;
+
+            var controller = new WeatherForecastController(app.MainWindow);
+
+            var hostTask = app.ServeFolderAsync("./wwwroot/dist");
+
+            app.Load("index.html");
+
+            hostTask.Wait();
+        }
+    }
+}

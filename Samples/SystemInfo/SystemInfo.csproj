@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Carlo.Net\Carlo.Net.csproj" />
+    <ProjectReference Include="..\..\CarloSharp\CarloSharp.csproj" />
   </ItemGroup>
 
 </Project>

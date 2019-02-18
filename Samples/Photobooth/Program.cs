@@ -1,8 +1,6 @@
-﻿using Carlo.Net;
+﻿using CarloSharp;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Diagnostics;
-using System.Threading;
 
 namespace Photobooth
 {
@@ -10,7 +8,7 @@ namespace Photobooth
     {
         static void Main(string[] args)
         {
-            var app = Carlo.Net.Carlo.LaunchAsync(new Options()
+            var app = Carlo.LaunchAsync(new Options()
             {
                 Title = "Photobooth",
                 Width = 800,

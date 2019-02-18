@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Carlo.Net
+namespace CarloSharp
 {
     public class WindowEventArgs : EventArgs
     {

@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static System.Environment;
 
-namespace Carlo.Net
+namespace CarloSharp
 {
     public static class Carlo
     {
