@@ -1,7 +1,7 @@
 using CarloSharp.Samples.Angular.Controllers;
 using CarloSharp;
 
-namespace CarloNet.Samples.Angular
+namespace CarloSharp.Samples.Angular
 {
     public class Program
     {
