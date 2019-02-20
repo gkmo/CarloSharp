@@ -9,7 +9,7 @@ namespace CarloNet.Samples.Angular
         {
             var app = Carlo.LaunchAsync(new Options()
             {
-                Title = "Carlo.Net - Angular",
+                Title = "Carlo# - Angular",
                 Width = 1024,
                 Height = 600,
                 Channel = new string[] { "stable" }
