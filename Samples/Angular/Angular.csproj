@@ -11,6 +11,7 @@
     <!-- Set this to true if you enable server-side prerendering -->
     <BuildServerSideRenderer>false</BuildServerSideRenderer>
     <RootNamespace>CarloSharp.Samples.Angular</RootNamespace>
+    <AssemblyName>CarloSharp.Samples.Angular</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
