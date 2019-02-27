@@ -16,13 +16,13 @@ namespace Photobooth
                 Channel = new string[] { "stable" }
             }).Result;
 
-            var hostTask = app.ServeFolderAsync("./www");
+            app.ServeFolder("./www");
 
             app.ExposeFunctionAsync<string, JObject>("saveImage", SaveImage).Wait();
 
             app.Load("index.html");
 
-            hostTask.Wait();
+            Console.ReadLine();
         }
 
         private static JObject SaveImage(string base64)

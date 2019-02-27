@@ -1,20 +1,24 @@
 ﻿using Newtonsoft.Json.Linq;
 using PuppeteerSharp;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace CarloSharp
 {
     public class Window
     {
+        private readonly List<ServingItem> _www = new List<ServingItem>();
         private readonly App _app;
         private readonly Page _page;
-
         private Options _options;
         private CDPSession _session;
         private object _paramsForReuse;
         private int _windowId;
         private string _loadURI;
+        private bool _interceptionInitialized;
+        private RequestHandlerAsync _httpHandler;
 
         internal Window(App app, Page page, Options options)
         {
@@ -135,7 +139,7 @@ namespace CarloSharp
                 WaitUntil = new WaitUntilNavigation[] { WaitUntilNavigation.DOMContentLoaded }
             };
 
-            await _page.GoToAsync("http://localhost:5000/" + _loadURI, navigationOptions);
+            await _page.GoToAsync("https://domain/" + _loadURI, navigationOptions);
 
             // Available in Chrome M73+.
             try
@@ -145,11 +149,57 @@ namespace CarloSharp
             catch { }
         }
 
-
         private async Task InitializeInterception()
         {
-            //throw new NotImplementedException();
-        }        
+            _app.DebugApp("Initializing network interception...");
+
+            if (_interceptionInitialized)
+            {
+                return;
+            }
+
+            if (this._www.Count + this._app.WWW.Count == 0 && this._httpHandler == null && this._app.HttpHandler == null)
+            {
+                return;
+            }
+
+            _interceptionInitialized = true;
+
+            _session.MessageReceived += (sender, args) => 
+            {
+                if (args.MessageID == "Network.requestIntercepted")
+                {
+                    RequestInterceptedAsync(args.MessageData);
+                }
+            };
+
+            await _session.SendAsync("Network.setRequestInterception", JObject.Parse("{patterns: [{urlPattern: '*'}]}"));
+        }
+
+        private async void RequestInterceptedAsync(JToken messageData)
+        {
+            var url = messageData["request"]["url"].Value<string>();
+
+            _app.DebugServer("intercepted: {0}", url);
+
+            var handlers = new Queue<RequestHandlerAsync>();
+
+            if (_httpHandler != null)
+            {
+                handlers.Enqueue(_httpHandler);
+            }
+
+            if (_app.HttpHandler != null)
+            {
+                handlers.Enqueue(_app.HttpHandler);
+            }
+
+            handlers.Enqueue(HandleRequestAsync);
+
+            var request = new HttpRequest(_session, messageData, handlers);
+
+            await request.CallNextHandlerAsync();
+        }
 
         public async Task FullscreenAsync()
         {
@@ -215,6 +265,96 @@ namespace CarloSharp
             };
 
             await _app.Session.SendAsync("Browser.setWindowBounds", args);
-        }        
+        }   
+
+        private async Task HandleRequestAsync(HttpRequest request) 
+        {
+            var url = new Uri(request.Url);
+
+            _app.DebugServer("request url: {0}", url.ToString());
+
+            if (url.Host != "domain") 
+            {
+                await request.DeferToBrowserAsync();
+                return;
+            }
+
+            var urlpathname = url.LocalPath;
+
+            var www = new List<ServingItem>(_app.WWW);
+            www.AddRange(_www);
+            
+            foreach (var entry in www) 
+            {
+                var prefix = entry.Prefix;
+
+                _app.DebugServer("prefix: {0}", prefix);
+
+                if (!urlpathname.StartsWith(prefix))
+                {
+                    continue;
+                }
+
+                var pathname = urlpathname.Substring(prefix.Length);
+
+                _app.DebugServer("pathname: {0}", pathname);
+
+                if (entry.BaseUrl != null) 
+                {
+                    //request.DeferToBrowser({ url: String(new URL(pathname, baseURL)) });
+                    return;
+                }
+                
+                var fileName = Path.Combine(entry.Folder, pathname);
+
+                if (!File.Exists(fileName))
+                {
+                    continue;
+                }
+
+                var headers = new Dictionary<string, string>() 
+                { 
+                    {"content-type", ContentType(request, fileName)} 
+                };
+                
+                var body = File.ReadAllBytes(fileName);
+
+                await request.FulfillAsync(null, headers, body);
+                
+                return;
+            }
+
+            await request.DeferToBrowserAsync();
+        }
+
+        private static string ContentType(HttpRequest request, string fileName)
+        {
+            var dotIndex = fileName.LastIndexOf(".");
+            var extension = fileName.Substring(dotIndex + 1);
+
+            switch (request.ResourceType) 
+            {
+                case "Document": return "text/html";
+                case "Script": return "text/javascript";
+                case "Stylesheet": return "text/css";
+                case "Image":
+                    return _imageContentTypes.ContainsKey(extension) ? _imageContentTypes[extension] : "image/png";
+                case "Font":
+                    return _fontContentTypes.ContainsKey(extension) ? _fontContentTypes[extension] : "application/font-woff";
+            }
+
+            return null;
+        }
+
+        private static Dictionary<string, string> _imageContentTypes = new Dictionary<string, string>()
+        {
+            {"jpeg", "image/jpeg"}, {"jpg", "image/jpeg"}, {"svg", "image/svg+xml"}, {"gif", "image/gif"}, {"webp", "image/webp"},
+            {"png", "image/png"}, {"ico", "image/ico"}, {"tiff", "image/tiff"}, {"tif", "image/tiff"}, {"bmp", "image/bmp"}
+        };
+
+        private static Dictionary<string, string> _fontContentTypes = new Dictionary<string, string>()
+        {
+            {"ttf", "font/opentype"}, {"otf", "font/opentype"}, {"ttc", "font/opentype"}, {"woff", "application/font-woff"}
+        };
     }
 }

@@ -1,5 +1,6 @@
 using CarloSharp.Samples.Angular.Controllers;
 using CarloSharp;
+using System;
 
 namespace CarloSharp.Samples.Angular
 {
@@ -17,11 +18,11 @@ namespace CarloSharp.Samples.Angular
 
             var controller = new WeatherForecastController(app.MainWindow);
 
-            var hostTask = app.ServeFolderAsync("./wwwroot/dist");
+            app.ServeFolder("./wwwroot/dist");
 
             app.Load("index.html");
 
-            hostTask.Wait();
+            Console.ReadLine();
         }
     }
 }

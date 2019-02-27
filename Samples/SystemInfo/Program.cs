@@ -19,13 +19,13 @@ namespace SystemInfo
                 Icon = "./app_icon.png",
             }).Result;
 
-            var hostTask = app.ServeFolderAsync("./www");
+            app.ServeFolder("./www");
 
             app.ExposeFunctionAsync<JObject>("systeminfo", GetSystemInfo).Wait();
 
             app.Load("index.html");
 
-            hostTask.Wait();
+            Console.ReadLine();
         }
 
         private static JObject GetSystemInfo()

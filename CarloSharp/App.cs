@@ -21,9 +21,9 @@ namespace CarloSharp
         private readonly Dictionary<string, object> _exposedFunctions;
         private readonly Dictionary<string, Tuple<Options, Action<Window>>> _pendingWindows;
         private readonly List<IWebHost> _hosts = new List<IWebHost>();
+        private readonly List<ServingItem> _www = new List<ServingItem>();
 
         private int _windowSeq;
-        private List<string> _www;
         private CDPSession _session;
         private bool _exited;
 
@@ -35,13 +35,14 @@ namespace CarloSharp
             _exposedFunctions = new Dictionary<string, object>();
             _pendingWindows = new Dictionary<string, Tuple<Options, Action<Window>>>();
             _windowSeq = 0;
-            _www = new List<string>();
         }
 
         public event EventHandler OnExit;
         public event EventHandler<WindowEventArgs> OnWindowCreated;
 
         internal CDPSession Session {  get { return _session; } }
+
+        internal IList<ServingItem> WWW { get { return _www.AsReadOnly(); } }
 
         public Window MainWindow
         {
@@ -50,6 +51,8 @@ namespace CarloSharp
                 return _windows.FirstOrDefault();
             }
         }
+
+        public RequestHandlerAsync HttpHandler { get; set; }
 
         internal async Task InitAsync()
         {
@@ -175,13 +178,18 @@ namespace CarloSharp
             MainWindow.LoadAsync(uri, options);
         }
 
-        public async Task ServeFolderAsync(string folderPath)
+        // public async Task ServeFolderAsync(string folderPath)
+        // {
+        //     var host = CreateWebHostBuilder(folderPath).Build();
+
+        //     _hosts.Add(host);
+
+        //     await host.RunAsync();
+        // }
+
+        public void ServeFolder(string folderPath = "", string prefix = "")
         {
-            var host = CreateWebHostBuilder(folderPath).Build();
-
-            _hosts.Add(host);
-
-            await host.RunAsync();
+            this._www.Add(new ServingItem() { Prefix = WrapPrefix(prefix), Folder = folderPath });
         }
 
         public async Task ExposeFunctionAsync<T, TResult>(string name, Func<T, TResult> function)
@@ -247,6 +255,26 @@ namespace CarloSharp
         internal void DebugApp(string message, params string[] args)
         {
             Console.WriteLine(message, args);
+        }
+
+        internal void DebugServer(string message, params string[] args)
+        {
+            Console.WriteLine(message, args);
+        }
+
+        internal static string WrapPrefix(string prefix) 
+        {
+            if (!prefix.StartsWith("/")) 
+            {
+                prefix = '/' + prefix;
+            }
+
+            if (!prefix.EndsWith("/")) 
+            {
+                prefix += '/';
+            }
+            
+            return prefix;
         }
     }
 }
