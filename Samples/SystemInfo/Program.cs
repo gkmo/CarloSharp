@@ -15,7 +15,7 @@ namespace SystemInfo
             var app = Carlo.LaunchAsync(new Options()
             {
                 BgColor = Color.FromArgb(0x2b, 0x2e, 0x3b),
-                Title = "Systeminfo App",
+                Title = "Carlo# - Systeminfo App",
                 Width = 1000,
                 Height = 500,
                 Channel = new string[] { "canary", "stable" },

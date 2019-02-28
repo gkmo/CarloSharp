@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using PuppeteerSharp;
 using static System.Environment;
 
 namespace CarloSharp
@@ -65,6 +66,7 @@ namespace CarloSharp
             {
                 ExecutablePath = executablePath.Item1,
                 Headless = false,
+                DefaultViewport = null,
                 UserDataDir = options.UserDataDir ?? options.LocalDataDir + $"profile-{executablePath.Item2}",
                 Args = args.ToArray()
             };

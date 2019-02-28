@@ -261,6 +261,6 @@ __pycache__/
 *.pyc
 
 # Samples runtime files
-Samples/Photobooth/.local-dataprofile-stable/
-Samples/Angular/.local-dataprofile-stable/
+Samples/*/.local-dataprofile-*/
+Samples/Photobooth/pictures/
 Samples/Angular/ClientApp/dist/

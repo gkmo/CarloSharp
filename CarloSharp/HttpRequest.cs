@@ -79,8 +79,6 @@ namespace CarloSharp
         private readonly CDPSession _session;
         private readonly JToken _params;
 
-        private readonly string _interceptionId;
-
         private bool _done;
         private Queue<RequestHandlerAsync> _handlers;
 
@@ -89,7 +87,6 @@ namespace CarloSharp
             _session = session;
             _params = @params;
             _handlers = handlers;
-            _interceptionId = _params["interceptionId"].Value<string>();
         }
 
         public string Url 
@@ -158,7 +155,7 @@ namespace CarloSharp
 
             foreach (var header in responseHeaders.Keys)
             {
-                text += header + ", " + responseHeaders[header] + CRLF;
+                text += header + ": " + responseHeaders[header] + CRLF;
             }
 
             text += CRLF;
@@ -178,7 +175,7 @@ namespace CarloSharp
              
             var @params = new JObject
             {
-                { "interceptionId", _interceptionId },
+                { "interceptionId", null },
                 { "rawResponse", content }
             };
 

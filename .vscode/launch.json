@@ -5,12 +5,23 @@
    "version": "0.2.0",
    "configurations": [
         {
+            "name": ".NET Core Launch (SystemInfo)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/Samples/SystemInfo/bin/Debug/netcoreapp2.1/CarloSharp.Samples.SystemInfo.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Samples/SystemInfo",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
             "name": ".NET Core Launch (Photobooth)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Samples/Photobooth/bin/Debug/netcoreapp2.1/Photobooth.dll",
+            "program": "${workspaceFolder}/Samples/Photobooth/bin/Debug/netcoreapp2.1/CarloSharp.Samples.Photobooth.dll",
             "args": [],
             "cwd": "${workspaceFolder}/Samples/Photobooth",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window

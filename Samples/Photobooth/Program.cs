@@ -1,6 +1,7 @@
 ﻿using CarloSharp;
 using Newtonsoft.Json.Linq;
 using System;
+using System.IO;
 using System.Threading;
 
 namespace Photobooth
@@ -16,7 +17,7 @@ namespace Photobooth
                 Title = "Photobooth",
                 Width = 800,
                 Height = 648 + 24,
-                Channel = new string[] { "stable" }
+                Channel = new string[] { "canary" }
             }).Result;
 
             app.ServeFolder("./www");
@@ -32,7 +33,16 @@ namespace Photobooth
 
         private static JObject SaveImage(string base64)
         {
-            Console.WriteLine(base64);
+            var buffer = Convert.FromBase64String(base64);
+            
+            if (!Directory.Exists("pictures"))
+            {
+                Directory.CreateDirectory("pictures");
+            }
+  
+            var fileName = Path.Combine("pictures", DateTime.Now.ToFileTime() + ".jpeg");
+            
+            File.WriteAllBytes(fileName, buffer);
 
             return null;
         }
