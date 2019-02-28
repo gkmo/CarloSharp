@@ -24,7 +24,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Samples/Angular/bin/Debug/netcoreapp2.1/Angular.dll",
+            "program": "${workspaceFolder}/Samples/Angular/bin/Debug/netcoreapp2.1/CarloSharp.Samples.Angular.dll",
             "args": [],
             "cwd": "${workspaceFolder}/Samples/Angular",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window

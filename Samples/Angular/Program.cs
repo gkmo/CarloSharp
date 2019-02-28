@@ -1,11 +1,15 @@
+
 using CarloSharp.Samples.Angular.Controllers;
 using CarloSharp;
 using System;
+using System.Threading;
 
 namespace CarloSharp.Samples.Angular
 {
     public class Program
     {
+        private static ManualResetEvent _exitEvent = new ManualResetEvent(false);
+
         public static void Main(string[] args)
         {
             var app = Carlo.LaunchAsync(new Options()
@@ -22,7 +26,14 @@ namespace CarloSharp.Samples.Angular
 
             app.Load("index.html");
 
-            Console.ReadLine();
+            app.OnExit += OnAppExit;
+
+            _exitEvent.WaitOne();
+        }
+
+        private static void OnAppExit(object sender, EventArgs args)
+        {
+            _exitEvent.Set();
         }
     }
 }

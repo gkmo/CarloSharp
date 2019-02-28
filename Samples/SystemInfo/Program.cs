@@ -2,11 +2,14 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Drawing;
+using System.Threading;
 
 namespace SystemInfo
 {
     class Program
     {
+        private static ManualResetEvent _exitEvent = new ManualResetEvent(false);
+
         static void Main(string[] args)
         {
             var app = Carlo.LaunchAsync(new Options()
@@ -25,7 +28,9 @@ namespace SystemInfo
 
             app.Load("index.html");
 
-            Console.ReadLine();
+            app.OnExit += OnAppExit;
+
+            _exitEvent.WaitOne();
         }
 
         private static JObject GetSystemInfo()
@@ -34,10 +39,15 @@ namespace SystemInfo
             {
                 { "battery", "" },
                 { "cpu", ""},
-                { "osInfo", JObject.FromObject(Environment.OSVersion) }
+                { "osInfo", Environment.OSVersion.ToString() }
             };
 
             return result;
+        }
+
+        private static void OnAppExit(object sender, EventArgs args)
+        {
+            _exitEvent.Set();
         }
     }
 }

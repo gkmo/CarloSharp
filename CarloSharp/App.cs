@@ -4,9 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using PuppeteerSharp;
@@ -20,7 +17,6 @@ namespace CarloSharp
         private readonly List<Window> _windows;
         private readonly Dictionary<string, object> _exposedFunctions;
         private readonly Dictionary<string, Tuple<Options, Action<Window>>> _pendingWindows;
-        private readonly List<IWebHost> _hosts = new List<IWebHost>();
         private readonly List<ServingItem> _www = new List<ServingItem>();
 
         private int _windowSeq;
@@ -93,7 +89,7 @@ namespace CarloSharp
         {
             var url = page.Url;
 
-            DebugApp("Page created at", url);
+            DebugApp("Page created at {0}", url);
 
             var seq = url.StartsWith("about:blank?seq=") ? url.Substring(0, "about:blank?seq=".Length) : "";
             var p = _pendingWindows[seq];
@@ -120,7 +116,7 @@ namespace CarloSharp
 
         internal async Task WindownClosedAsync(Window window)
         {
-            DebugApp("Window closed", window.LoadURI);
+            DebugApp("Window closed {0}", window.LoadURI);
 
             _windows.Remove(window);
 
@@ -142,11 +138,6 @@ namespace CarloSharp
             _exited = true;
 
             await _browser.CloseAsync();
-
-            foreach (var host in _hosts)
-            {
-                await host.StopAsync();
-            }
 
             OnExit?.Invoke(this, EventArgs.Empty);
         }
@@ -230,27 +221,7 @@ namespace CarloSharp
             };
 
             await _session.SendAsync("Browser.setDockTile", iconObject);       
-        }
-
-        public static IWebHostBuilder CreateWebHostBuilder(string folderPath)
-        {
-            return WebHost.CreateDefaultBuilder()
-                .UseUrls("http://*:5000;http://localhost:5001;https://hostname:5002")
-                .ConfigureServices(s => { s.AddSpaStaticFiles(c => c.RootPath = folderPath); })
-                .Configure(app =>
-                {
-                    app.UseExceptionHandler("/Error");
-                    app.UseHsts();
-
-                    app.UseStaticFiles();
-                    app.UseSpaStaticFiles();
-
-                    app.UseSpa(spa =>
-                    {
-                        spa.Options.SourcePath = folderPath;
-                    });
-                });
-        }
+        }        
 
         internal void DebugApp(string message, params string[] args)
         {

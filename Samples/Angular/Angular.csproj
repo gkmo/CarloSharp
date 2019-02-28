@@ -12,6 +12,9 @@
     <BuildServerSideRenderer>false</BuildServerSideRenderer>
     <RootNamespace>CarloSharp.Samples.Angular</RootNamespace>
     <AssemblyName>CarloSharp.Samples.Angular</AssemblyName>
+    <ApplicationIcon />
+    <OutputType>Exe</OutputType>
+    <StartupObject />
   </PropertyGroup>
 
   <ItemGroup>

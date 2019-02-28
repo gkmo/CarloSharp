@@ -1,11 +1,14 @@
 ﻿using CarloSharp;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Threading;
 
 namespace Photobooth
 {
     class Program
     {
+        private static ManualResetEvent _exitEvent = new ManualResetEvent(false);
+
         static void Main(string[] args)
         {
             var app = Carlo.LaunchAsync(new Options()
@@ -22,7 +25,9 @@ namespace Photobooth
 
             app.Load("index.html");
 
-            Console.ReadLine();
+            app.OnExit += OnAppExit;
+
+            _exitEvent.WaitOne();
         }
 
         private static JObject SaveImage(string base64)
@@ -30,6 +35,11 @@ namespace Photobooth
             Console.WriteLine(base64);
 
             return null;
+        }
+
+        private static void OnAppExit(object sender, EventArgs args)
+        {
+            _exitEvent.Set();
         }
     }
 }

@@ -121,14 +121,14 @@ namespace CarloSharp
 
         internal async void LoadAsync(string uri, Options options)
         {
-            _app.DebugApp("Load page", uri);
+            _app.DebugApp("Load page {0}", uri);
 
             _loadURI = uri;
             _options = options;
 
             await InitializeInterception();
 
-            _app.DebugApp("Navigating the page to", _loadURI);
+            _app.DebugApp("Navigating the page to {0}", _loadURI);
 
             //const result = new Promise(f => this.domContentLoadedCallback_ = f);
             // Await here to process exceptions.
@@ -158,7 +158,7 @@ namespace CarloSharp
                 return;
             }
 
-            if (this._www.Count + this._app.WWW.Count == 0 && this._httpHandler == null && this._app.HttpHandler == null)
+            if (this._www.Count + _app.WWW.Count == 0 && _httpHandler == null && _app.HttpHandler == null)
             {
                 return;
             }
