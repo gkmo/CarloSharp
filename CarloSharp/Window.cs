@@ -9,6 +9,17 @@ namespace CarloSharp
 {
     public class Window
     {
+        private static Dictionary<string, string> _imageContentTypes = new Dictionary<string, string>()
+        {
+            {"jpeg", "image/jpeg"}, {"jpg", "image/jpeg"}, {"svg", "image/svg+xml"}, {"gif", "image/gif"}, {"webp", "image/webp"},
+            {"png", "image/png"}, {"ico", "image/ico"}, {"tiff", "image/tiff"}, {"tif", "image/tiff"}, {"bmp", "image/bmp"}
+        };
+
+        private static Dictionary<string, string> _fontContentTypes = new Dictionary<string, string>()
+        {
+            {"ttf", "font/opentype"}, {"otf", "font/opentype"}, {"ttc", "font/opentype"}, {"woff", "application/font-woff"}
+        };
+
         private readonly List<ServingItem> _www = new List<ServingItem>();
         private readonly App _app;
         private readonly Page _page;
@@ -119,7 +130,7 @@ namespace CarloSharp
             await _app.WindownClosedAsync(this);
         }
 
-        internal async void LoadAsync(string uri, Options options)
+        public async Task LoadAsync(string uri, Options options)
         {
             _app.DebugApp("Load page {0}", uri);
 
@@ -139,7 +150,14 @@ namespace CarloSharp
                 WaitUntil = new WaitUntilNavigation[] { WaitUntilNavigation.DOMContentLoaded }
             };
 
-            await _page.GoToAsync("https://domain/" + _loadURI, navigationOptions);
+            if (_loadURI.StartsWith("http://") || _loadURI.StartsWith("https://"))
+            {
+                await _page.GoToAsync(_loadURI, navigationOptions);
+            }
+            else
+            {
+                await _page.GoToAsync("https://domain/" + _loadURI, navigationOptions);
+            }
 
             // Available in Chrome M73+.
             try
@@ -174,6 +192,11 @@ namespace CarloSharp
             };
 
             await _session.SendAsync("Network.setRequestInterception", JObject.Parse("{patterns: [{urlPattern: '*'}]}"));
+        }
+
+        public async Task<JToken> EvaluateAsync(string script)
+        {
+            return await _page.EvaluateExpressionAsync(script);
         }
 
         private async void RequestInterceptedAsync(JToken messageData)
@@ -334,9 +357,12 @@ namespace CarloSharp
 
             switch (request.ResourceType) 
             {
-                case "Document": return "text/html";
-                case "Script": return "text/javascript";
-                case "Stylesheet": return "text/css";
+                case "Document":
+                    return "text/html";
+                case "Script":
+                    return "text/javascript";
+                case "Stylesheet":
+                    return "text/css";
                 case "Image":
                     return _imageContentTypes.ContainsKey(extension) ? _imageContentTypes[extension] : "image/png";
                 case "Font":
@@ -345,16 +371,5 @@ namespace CarloSharp
 
             return null;
         }
-
-        private static Dictionary<string, string> _imageContentTypes = new Dictionary<string, string>()
-        {
-            {"jpeg", "image/jpeg"}, {"jpg", "image/jpeg"}, {"svg", "image/svg+xml"}, {"gif", "image/gif"}, {"webp", "image/webp"},
-            {"png", "image/png"}, {"ico", "image/ico"}, {"tiff", "image/tiff"}, {"tif", "image/tiff"}, {"bmp", "image/bmp"}
-        };
-
-        private static Dictionary<string, string> _fontContentTypes = new Dictionary<string, string>()
-        {
-            {"ttf", "font/opentype"}, {"otf", "font/opentype"}, {"ttc", "font/opentype"}, {"woff", "application/font-woff"}
-        };
     }
 }

@@ -123,7 +123,7 @@ namespace CarloSharp
 
         private void DebugServer(string message, params string[] args)
         {
-            Console.WriteLine(message, args);
+            Carlo.Logger?.Debug(message, args);
         }
 
         internal async Task<JObject> FulfillAsync(int? status, Dictionary<string, string> headers, byte[] body) 

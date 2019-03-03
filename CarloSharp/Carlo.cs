@@ -4,16 +4,21 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using PuppeteerSharp;
-using static System.Environment;
 
 namespace CarloSharp
 {
     public static class Carlo
     {
+        static Carlo()
+        {
+            Logger = new ConsoleLogger();
+        }
+
+        public static ILogger Logger { get; set; }
+
         public static async Task<App> LaunchAsync(Options options)
         {
             if (options.BgColor == Color.Empty)
@@ -62,7 +67,7 @@ namespace CarloSharp
                 args.Add($"--window-position={options.Left},{options.Top}");
             }
 
-            var launchOptions = new PuppeteerSharp.LaunchOptions
+            var launchOptions = new LaunchOptions
             {
                 ExecutablePath = executablePath.Item1,
                 Headless = false,
@@ -71,7 +76,7 @@ namespace CarloSharp
                 Args = args.ToArray()
             };
 
-            var browser = await PuppeteerSharp.Puppeteer.LaunchAsync(launchOptions);
+            var browser = await Puppeteer.LaunchAsync(launchOptions);
 
             var app = new App(browser, options);
 
@@ -130,7 +135,9 @@ namespace CarloSharp
 
             if (options.Channel.Contains("chromium") || options.Channel.Contains("*"))
             {
-                executablePath = DownloadChromium(options);
+                var revisionInfo = DownloadChromiumAsync(new BrowserFetcherOptions()).Result;
+
+                return new Tuple<string, string>(revisionInfo.ExecutablePath, revisionInfo.Revision.ToString());
             }
 
             return null;
@@ -142,7 +149,7 @@ namespace CarloSharp
 
             // Look into the directories where .desktop are saved on gnome based distro's
             var desktopInstallationFolders = new string[] {
-              Path.Combine(Environment.GetFolderPath(SpecialFolder.UserProfile), ".local/share/applications/"),
+              Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local/share/applications/"),
               "/usr/share/applications/"
             };
 
@@ -280,9 +287,32 @@ namespace CarloSharp
             return result;
         }
 
-        private static string DownloadChromium(Options options)
+        private static async Task<RevisionInfo> DownloadChromiumAsync(BrowserFetcherOptions options)
         {
-            throw new NotImplementedException();
+            var fetcher = Puppeteer.CreateBrowserFetcher(options);
+
+            if (fetcher.LocalRevisions().Contains(BrowserFetcher.DefaultRevision))
+            {
+                return fetcher.RevisionInfo(BrowserFetcher.DefaultRevision);
+            }
+
+            try
+            {
+                Logger?.Debug($"Downloading Chromium r{BrowserFetcher.DefaultRevision}...");
+
+                var revisionInfo = await fetcher.DownloadAsync(BrowserFetcher.DefaultRevision);
+
+                Logger?.Debug($"Chromium downloaded to {revisionInfo.FolderPath}");
+
+                return revisionInfo;
+            }
+            catch(Exception ex)
+            {
+                Logger?.Error($"ERROR: Failed to download Chromium r{BrowserFetcher.DefaultRevision}!)");
+                Logger?.Error(ex.Message);
+            }
+
+            return null;
         }
 
         private static string ToHtml(Color c)

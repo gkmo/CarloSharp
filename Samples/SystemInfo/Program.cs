@@ -26,7 +26,7 @@ namespace SystemInfo
 
             app.ExposeFunctionAsync<JObject>("systeminfo", GetSystemInfo).Wait();
 
-            app.Load("index.html");
+            app.LoadAsync("index.html").Wait();
 
             app.OnExit += OnAppExit;
 

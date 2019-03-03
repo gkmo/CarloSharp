@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using PuppeteerSharp;
 
@@ -91,8 +90,13 @@ namespace CarloSharp
 
             DebugApp("Page created at {0}", url);
 
-            var seq = url.StartsWith("about:blank?seq=") ? url.Substring(0, "about:blank?seq=".Length) : "";
-            var p = _pendingWindows[seq];
+            var seq = url.StartsWith("about:blank?seq=") ? url.Substring("about:blank?seq=".Length) : "";
+
+            if (!_pendingWindows.TryGetValue(seq, out var p))
+            {
+                return;
+            }
+
             var options = p.Item1;
             var callback = p.Item2;
 
@@ -159,14 +163,63 @@ namespace CarloSharp
             await OnPageCreatedAsync(page);
         }
 
-        public Window CreateWindow()
+        public Window CreateWindow(Options options = null)
         {
-            return null;
-        }
+            if (_windows.Count == 0)
+            {
+                throw new Exception("Needs at least one window to create more.");
+            }
 
-        public void Load(string uri, Options options = null)
+            if (options == null)
+            {
+                options = _options.Clone();
+            }
+
+            var @params = new List<string>();
+
+            if (options.Width.HasValue)
+            {
+                @params.Add($"width={options.Width.Value}");
+            }
+
+            if (options.Height.HasValue)
+            {
+                @params.Add($"height={options.Height.Value}");
+            }
+
+            if (options.Left.HasValue)
+            {
+                @params.Add($"left={options.Left.Value}");
+            }
+
+            if (options.Top.HasValue)
+            {
+                @params.Add($"top={options.Top.Value}");
+            }
+
+            var seq = ++_windowSeq;
+
+            Window newWindow = null;
+            ManualResetEvent windowCreatedEvent = new ManualResetEvent(false);
+            var callback = new Action<Window>(w => { newWindow = w; windowCreatedEvent.Set(); });
+
+            _pendingWindows[seq.ToString()] = new Tuple<Options, Action<Window>>(options, callback);
+
+            var args = string.Join(", ", @params);
+            var script = $"window.open('about:blank?seq={seq}', '', '{args}');";
+
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            MainWindow.EvaluateAsync(script);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+
+            windowCreatedEvent.WaitOne();
+
+            return newWindow;
+        }
+        
+        public async Task LoadAsync(string uri, Options options = null)
         {
-            MainWindow.LoadAsync(uri, options);
+            await MainWindow.LoadAsync(uri, options);
         }
 
         // public async Task ServeFolderAsync(string folderPath)
@@ -225,12 +278,12 @@ namespace CarloSharp
 
         internal void DebugApp(string message, params string[] args)
         {
-            Console.WriteLine(message, args);
+            Carlo.Logger?.Debug(message, args);
         }
 
         internal void DebugServer(string message, params string[] args)
         {
-            Console.WriteLine(message, args);
+            Carlo.Logger?.Debug(message, args);
         }
 
         internal static string WrapPrefix(string prefix) 

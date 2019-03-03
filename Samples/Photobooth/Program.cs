@@ -3,16 +3,18 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Photobooth
 {
     class Program
     {
         private static ManualResetEvent _exitEvent = new ManualResetEvent(false);
+        private static App _app;
 
         static void Main(string[] args)
         {
-            var app = Carlo.LaunchAsync(new Options()
+            _app = Carlo.LaunchAsync(new Options()
             {
                 Title = "Photobooth",
                 Width = 800,
@@ -20,13 +22,13 @@ namespace Photobooth
                 Channel = new string[] { "canary" }
             }).Result;
 
-            app.ServeFolder("./www");
+            _app.ServeFolder("./www");
 
-            app.ExposeFunctionAsync<string, JObject>("saveImage", SaveImage).Wait();
+            _app.ExposeFunctionAsync<string, JObject>("saveImage", SaveImage).Wait();
 
-            app.Load("index.html");
+            _app.LoadAsync("index.html").Wait();
 
-            app.OnExit += OnAppExit;
+            _app.OnExit += OnAppExit;
 
             _exitEvent.WaitOne();
         }

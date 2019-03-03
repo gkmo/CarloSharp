@@ -24,7 +24,7 @@ namespace CarloSharp.Samples.Angular
 
             app.ServeFolder("./wwwroot/dist");
 
-            app.Load("index.html");
+            app.LoadAsync("index.html").Wait();
 
             app.OnExit += OnAppExit;
 
