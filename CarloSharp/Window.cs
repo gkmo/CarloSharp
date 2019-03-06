@@ -3,6 +3,7 @@ using PuppeteerSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CarloSharp
@@ -37,14 +38,73 @@ namespace CarloSharp
 
             _page = page;
             _page.Close += OnCloseAsync;
-            _page.DOMContentLoaded += OnDocumentLoaded;
+            _page.DOMContentLoaded += OnDocumentLoadedAsync;
 
             _options = options;
         }
 
+        public event EventHandler<IpcMessageEventArgs> IpcMessageReceived;
+
         public string LoadURI
         {
             get { return _loadURI; }
+        }
+
+        public async Task FullscreenAsync()
+        {
+            await SetWindowStateAsync("fullscreen");
+        }
+
+        public async Task MaximizeAsync()
+        {
+            await SetWindowStateAsync("maximized");
+        }
+
+        public async Task MinimizeAsync()
+        {
+            await SetWindowStateAsync("minimized");
+        }
+
+        public async Task CloseAsync()
+        {
+            await _page.CloseAsync();
+        }
+
+        public async Task ExposeFunctionAsync<TResult>(string name, Func<TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task ExposeFunctionAsync<T, TResult>(string name, Func<T, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task ExposeFunctionAsync<T1, T2, TResult>(string name, Func<T1, T2, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task ExposeFunctionAsync<T1, T2, T3, TResult>(string name, Func<T1, T2, T3, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task ExposeFunctionAsync<T1, T2, T3, T4, TResult>(string name, Func<T1, T2, T3, T4, TResult> function)
+        {
+            await _page.ExposeFunctionAsync(name, function);
+        }
+
+        public async Task SendIpcMessageAsync(string channel, string message)
+        {
+            var script = $@"window.ipc._receiveIpcMessage({_windowId}, '{channel}', '{message}');";
+
+            await EvaluateAsync(script);
+        }
+
+        public async Task SendIpcMessageAsync(string channel, JObject obj)
+        {
+            await SendIpcMessageAsync(channel, obj.ToString());
         }
 
         internal async Task InitAsync()
@@ -86,23 +146,48 @@ namespace CarloSharp
             var window = await getWindowForTargetTask;
 
             await InitBoundsAsync(window);
-
-            ConfigureRpcOnce();
         }
 
-
-        /* 
-    
-    await Promise.all([
-     
-      this.configureRpcOnce_(),
-      ...this.app_.exposedFunctions_.map(({name, func}) => this.exposeFunction(name, func))
-    ]);
-             */
-
-        private void ConfigureRpcOnce()
+        private async Task ConfigureRpcOnceAsync()
         {
+            await ExposeFunctionAsync<int, string, string, JObject>("sendIpcMessage", ReceiveIpcMessage);
 
+            var script = $@"
+                class Ipc {{
+                    constructor(windowId) {{
+                        this.windowId = windowId;
+                        this.callbacks = new Map();
+                    }}
+
+                    send(channel, message) {{                        
+                        sendIpcMessage(this.windowId, channel, message);
+                        console.log('sent: ' + message + ' to ' + this.windowId);
+                    }}
+
+                    on(channel, callback) {{
+                        this.callbacks.set(channel, callback);
+                        console.log('listening on ' + channel);
+                    }}
+
+                    off(channel, callback) {{
+                        
+                    }}
+
+                    _receiveIpcMessage(windowId, channel, message) {{
+                        console.log('received: ' + message + ' on ' + channel);
+                        
+                        var callback = this.callbacks.get(channel);
+                        if (callback !== undefined) {{
+                            callback(windowId, message);
+                        }} else {{
+                            console.log('Nobody listenning on ' + channel);
+                        }}
+                    }}
+                }};
+
+                window.ipc = new Ipc({_windowId});";
+
+            await EvaluateAsync(script);
         }
 
         private async Task InitBoundsAsync(JObject result)
@@ -120,9 +205,48 @@ namespace CarloSharp
             await SetBoundsAsync(bounds);
         }
 
-        private void OnDocumentLoaded(object sender, EventArgs e)
+        private async void OnDocumentLoadedAsync(object sender, EventArgs e)
         {
+            await ConfigureRpcOnceAsync();
 
+            var pingUiThread = new Thread(async () => 
+            {
+                try
+                {
+                    while (true)
+                    {
+                        await EvaluateAsync("window.lastBackendPing = new Date().getTime();");
+                        Thread.Sleep(500);
+                    }
+                }
+                catch (PuppeteerException ex)
+                {
+                    _app.DebugServer(ex.Message);
+                }
+            });
+
+            pingUiThread.IsBackground = true;
+            pingUiThread.Start();
+
+            var script = @"
+                var checkBackendProcess = function() {
+                    if (window.lastBackendPing < new Date().getTime() - 1000) {
+                        window.close(); 
+                    }
+                };
+
+                setInterval(checkBackendProcess, 1000);";
+
+            await EvaluateAsync(script);
+        }
+
+        private JObject ReceiveIpcMessage(int windowId, string channel, string message)
+        {
+            _app.DebugServer("Received Ipc Message: " + message + " on channel :" + channel);
+
+            IpcMessageReceived?.Invoke(this, new IpcMessageEventArgs(channel, message));
+
+            return null;
         }
 
         private async void OnCloseAsync(object sender, EventArgs e)
@@ -222,51 +346,6 @@ namespace CarloSharp
             var request = new HttpRequest(_session, messageData, handlers);
 
             await request.CallNextHandlerAsync();
-        }
-
-        public async Task FullscreenAsync()
-        {
-            await SetWindowStateAsync("fullscreen");
-        }
-
-        public async Task MaximizeAsync()
-        {
-            await SetWindowStateAsync("maximized");
-        }
-
-        public async Task MinimizeAsync()
-        {
-            await SetWindowStateAsync("minimized");
-        }
-
-        public async Task CloseAsync()
-        {
-            await _page.CloseAsync();
-        }
-
-        public async Task ExposeFunctionAsync<TResult>(string name, Func<TResult> function)
-        {
-            await _page.ExposeFunctionAsync(name, function);
-        }
-
-        public async Task ExposeFunctionAsync<T, TResult>(string name, Func<T, TResult> function)
-        {
-            await _page.ExposeFunctionAsync(name, function);
-        }
-
-        public async Task ExposeFunctionAsync<T1, T2, TResult>(string name, Func<T1, T2, TResult> function)
-        {
-            await _page.ExposeFunctionAsync(name, function);
-        }
-
-        public async Task ExposeFunctionAsync<T1, T2, T3, TResult>(string name, Func<T1, T2, T3, TResult> function)
-        {
-            await _page.ExposeFunctionAsync(name, function);
-        }
-
-        public async Task ExposeFunctionAsync<T1, T2, T3, T4, TResult>(string name, Func<T1, T2, T3, T4, TResult> function)
-        {
-            await _page.ExposeFunctionAsync(name, function);
         }
 
         private async Task SetWindowStateAsync(string state)
