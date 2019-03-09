@@ -20,21 +20,25 @@ Open a terminal at **Samples/Angular/wwwroot** and execute:
 After this step you can build and run the project using:
 `dotnet run`
 
-![alt text](Samples/LinuxAngular01.png "CefAdapter.NET Running Angular sample on Linux")
+![alt text](Samples/LinuxAngular01.png "Carlo# Running Angular sample on Linux")
 
 ```cs
 using CarloSharp.Samples.Angular.Controllers;
 using CarloSharp;
+using System;
+using System.Threading;
 
 namespace CarloSharp.Samples.Angular
 {
     public class Program
     {
+        private static ManualResetEvent _exitEvent = new ManualResetEvent(false);
+
         public static void Main(string[] args)
         {
             var app = Carlo.LaunchAsync(new Options()
             {
-                Title = "Carlo.Net - Angular",
+                Title = "Carlo# - Angular",
                 Width = 1024,
                 Height = 600,
                 Channel = new string[] { "stable" }
@@ -42,11 +46,18 @@ namespace CarloSharp.Samples.Angular
 
             var controller = new WeatherForecastController(app.MainWindow);
 
-            var hostTask = app.ServeFolderAsync("./wwwroot/dist");
+            app.ServeFolder("./wwwroot/dist");
 
-            app.Load("index.html");
+            app.LoadAsync("index.html").Wait();
 
-            hostTask.Wait();
+            app.OnExit += OnAppExit;
+
+            _exitEvent.WaitOne();
+        }
+
+        private static void OnAppExit(object sender, EventArgs args)
+        {
+            _exitEvent.Set();
         }
     }
 }
@@ -84,5 +95,34 @@ namespace CarloSharp.Samples.Angular.Controllers
                 }).ToArray();
         }
     }
+}
+```
+
+```typescript
+import { Component } from '@angular/core';
+
+declare function getWeatherForecasts(): Promise<WeatherForecast[]>;
+
+@Component({
+  selector: 'app-fetch-data',
+  templateUrl: './fetch-data.component.html'
+})
+export class FetchDataComponent {
+  public forecasts: WeatherForecast[];
+
+  constructor() {
+    this.loadAsync();
+  }
+
+  async loadAsync() {
+    this.forecasts = await getWeatherForecasts();
+  }
+}
+
+interface WeatherForecast {
+  dateFormatted: string;
+  temperatureC: number;
+  temperatureF: number;
+  summary: string;
 }
 ```
