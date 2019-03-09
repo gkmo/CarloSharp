@@ -278,12 +278,12 @@ namespace CarloSharp
 
         internal void DebugApp(string message, params string[] args)
         {
-            Carlo.Logger?.Debug(message, args);
+            Carlo.Logger?.Debug(EscapeCurlyBraces(message), args);
         }
 
         internal void DebugServer(string message, params string[] args)
         {
-            Carlo.Logger?.Debug(message, args);
+            Carlo.Logger?.Debug(EscapeCurlyBraces(message), args);
         }
 
         internal static string WrapPrefix(string prefix) 
@@ -299,6 +299,11 @@ namespace CarloSharp
             }
             
             return prefix;
+        }
+
+        private static string EscapeCurlyBraces(string message)
+        {
+            return message.Replace("{", "{{").Replace("}", "}}");
         }
     }
 }

@@ -1,6 +1,13 @@
 import { Component } from '@angular/core';
 
-declare function getWeatherForecasts(): Promise<WeatherForecast[]>;
+
+interface Ipc {
+  sendSync(channel : string, message : any) : any;
+}
+
+declare global {
+  interface Window { ipc: Ipc; }
+}
 
 @Component({
   selector: 'app-fetch-data',
@@ -14,7 +21,7 @@ export class FetchDataComponent {
   }
 
   async loadAsync() {
-    this.forecasts = await getWeatherForecasts();
+    this.forecasts = await window.ipc.sendSync('getWeatherForecasts', { City: 'New York', UseCelsius: true });
   }
 }
 

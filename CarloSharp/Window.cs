@@ -50,6 +50,13 @@ namespace CarloSharp
             get { return _loadURI; }
         }
 
+        public RequestHandlerAsync HttpHandler
+        {
+            get { return _httpHandler; }
+
+            set { _httpHandler = value; }
+        }
+
         public async Task FullscreenAsync()
         {
             await SetWindowStateAsync("fullscreen");
@@ -97,7 +104,7 @@ namespace CarloSharp
 
         public async Task SendIpcMessageAsync(string channel, string message)
         {
-            var script = $@"window.ipc._receiveIpcMessage({_windowId}, '{channel}', '{message}');";
+            var script = $@"window.ipc.__receiveIpcMessage({_windowId}, '{channel}', '{message}');";
 
             await EvaluateAsync(script);
         }
@@ -150,42 +157,17 @@ namespace CarloSharp
 
         private async Task ConfigureRpcOnceAsync()
         {
-            await ExposeFunctionAsync<int, string, string, JObject>("sendIpcMessage", ReceiveIpcMessage);
+            await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageAsync", ReceiveIpcMessageAsync);
+            await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageSync", ReceiveIpcMessageSync);
 
-            var script = $@"
-                class Ipc {{
-                    constructor(windowId) {{
-                        this.windowId = windowId;
-                        this.callbacks = new Map();
-                    }}
+            var assembly = typeof(Window).Assembly;
+            var streamReader = new StreamReader(assembly.GetManifestResourceStream("CarloSharp.Scripts.Ipc.js"));
 
-                    send(channel, message) {{                        
-                        sendIpcMessage(this.windowId, channel, message);
-                        console.log('sent: ' + message + ' to ' + this.windowId);
-                    }}
+            var script = streamReader.ReadToEnd();
 
-                    on(channel, callback) {{
-                        this.callbacks.set(channel, callback);
-                        console.log('listening on ' + channel);
-                    }}
+            streamReader.Close();
 
-                    off(channel, callback) {{
-                        
-                    }}
-
-                    _receiveIpcMessage(windowId, channel, message) {{
-                        console.log('received: ' + message + ' on ' + channel);
-                        
-                        var callback = this.callbacks.get(channel);
-                        if (callback !== undefined) {{
-                            callback(windowId, message);
-                        }} else {{
-                            console.log('Nobody listenning on ' + channel);
-                        }}
-                    }}
-                }};
-
-                window.ipc = new Ipc({_windowId});";
+            script += $@"window.ipc = new Ipc({_windowId});";
 
             await EvaluateAsync(script);
         }
@@ -215,7 +197,7 @@ namespace CarloSharp
                 {
                     while (true)
                     {
-                        await EvaluateAsync("window.lastBackendPing = new Date().getTime();");
+                        await EvaluateAsync("window.__lastBackendPing = new Date().getTime();");
                         Thread.Sleep(500);
                     }
                 }
@@ -230,7 +212,7 @@ namespace CarloSharp
 
             var script = @"
                 var checkBackendProcess = function() {
-                    if (window.lastBackendPing < new Date().getTime() - 1000) {
+                    if (window.__lastBackendPing < new Date().getTime() - 1000) {
                         window.close(); 
                     }
                 };
@@ -240,13 +222,27 @@ namespace CarloSharp
             await EvaluateAsync(script);
         }
 
-        private JObject ReceiveIpcMessage(int windowId, string channel, string message)
+        private JToken ReceiveIpcMessageAsync(int windowId, string channel, JToken message)
         {
-            _app.DebugServer("Received Ipc Message: " + message + " on channel :" + channel);
+            _app.DebugServer("Received Async Ipc Message: " + message + " on channel :" + channel);
 
-            IpcMessageReceived?.Invoke(this, new IpcMessageEventArgs(channel, message));
+            Task.Run(() =>
+            {
+                IpcMessageReceived?.Invoke(this, new IpcMessageEventArgs(channel, message));
+            });
 
             return null;
+        }
+
+        private JToken ReceiveIpcMessageSync(int windowId, string channel, JToken message)
+        {
+            _app.DebugServer("Received Sync Ipc Message: " + message + " on channel :" + channel);
+
+            var e = new IpcMessageEventArgs(channel, message);
+
+            IpcMessageReceived?.Invoke(this, e);
+
+            return JToken.FromObject(e.Result);
         }
 
         private async void OnCloseAsync(object sender, EventArgs e)
@@ -264,9 +260,6 @@ namespace CarloSharp
             await InitializeInterception();
 
             _app.DebugApp("Navigating the page to {0}", _loadURI);
-
-            //const result = new Promise(f => this.domContentLoadedCallback_ = f);
-            // Await here to process exceptions.
 
             var navigationOptions = new NavigationOptions()
             {
@@ -403,7 +396,7 @@ namespace CarloSharp
 
                 if (entry.BaseUrl != null) 
                 {
-                    //request.DeferToBrowser({ url: String(new URL(pathname, baseURL)) });
+                    //TODO: request.DeferToBrowser({ url: String(new URL(pathname, baseURL)) });
                     return;
                 }
                 
