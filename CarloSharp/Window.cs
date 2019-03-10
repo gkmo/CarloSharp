@@ -31,6 +31,7 @@ namespace CarloSharp
         private string _loadURI;
         private bool _interceptionInitialized;
         private RequestHandlerAsync _httpHandler;
+        private bool _ipcConfigured;
 
         internal Window(App app, Page page, Options options)
         {
@@ -152,24 +153,18 @@ namespace CarloSharp
 
             var window = await getWindowForTargetTask;
 
-            await InitBoundsAsync(window);
+            await InitBoundsAsync(window);            
         }
 
-        private async Task ConfigureRpcOnceAsync()
+        private async Task ConfigureIpcMethodsOnceAsync()
         {
-            await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageAsync", ReceiveIpcMessageAsync);
-            await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageSync", ReceiveIpcMessageSync);
+            if (!_ipcConfigured)
+            {
+                _ipcConfigured = true;
 
-            var assembly = typeof(Window).Assembly;
-            var streamReader = new StreamReader(assembly.GetManifestResourceStream("CarloSharp.Scripts.Ipc.js"));
-
-            var script = streamReader.ReadToEnd();
-
-            streamReader.Close();
-
-            script += $@"window.ipc = new Ipc({_windowId});";
-
-            await EvaluateAsync(script);
+                await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageAsync", ReceiveIpcMessageAsync);
+                await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageSync", ReceiveIpcMessageSync);
+            }                           
         }
 
         private async Task InitBoundsAsync(JObject result)
@@ -189,9 +184,20 @@ namespace CarloSharp
 
         private async void OnDocumentLoadedAsync(object sender, EventArgs e)
         {
-            await ConfigureRpcOnceAsync();
+            await ConfigureIpcMethodsOnceAsync();
 
-            var pingUiThread = new Thread(async () => 
+            var assembly = typeof(Window).Assembly;
+            var streamReader = new StreamReader(assembly.GetManifestResourceStream("CarloSharp.Scripts.Ipc.js"));
+
+            var script = streamReader.ReadToEnd();
+
+            streamReader.Close();
+
+            script += $@"window.ipc = new Ipc({_windowId});";
+
+            await EvaluateAsync(script);
+
+            var pingUiThread = new Thread(async () =>
             {
                 try
                 {
@@ -210,21 +216,21 @@ namespace CarloSharp
             pingUiThread.IsBackground = true;
             pingUiThread.Start();
 
-            var script = @"
-                var checkBackendProcess = function() {
-                    if (window.__lastBackendPing < new Date().getTime() - 1000) {
-                        window.close(); 
-                    }
-                };
+            script = @"
+            var checkBackendProcess = function() {
+                if (window.__lastBackendPing < new Date().getTime() - 1000) {
+                    window.close(); 
+                }
+            };
 
-                setInterval(checkBackendProcess, 1000);";
+            setInterval(checkBackendProcess, 1000);";
 
             await EvaluateAsync(script);
         }
 
         private JToken ReceiveIpcMessageAsync(int windowId, string channel, JToken message)
         {
-            _app.DebugServer("Received Async Ipc Message: " + message + " on channel :" + channel);
+            _app.DebugServer("Received Async Ipc Message: " + EscapeCurlyBraces(message.ToString()) + " on channel :" + channel);
 
             Task.Run(() =>
             {
@@ -236,13 +242,18 @@ namespace CarloSharp
 
         private JToken ReceiveIpcMessageSync(int windowId, string channel, JToken message)
         {
-            _app.DebugServer("Received Sync Ipc Message: " + message + " on channel :" + channel);
+            _app.DebugServer("Received Sync Ipc Message: " + EscapeCurlyBraces(message.ToString()) + " on channel :" + channel);
 
             var e = new IpcMessageEventArgs(channel, message);
 
             IpcMessageReceived?.Invoke(this, e);
 
             return JToken.FromObject(e.Result);
+        }
+
+        private static string EscapeCurlyBraces(string message)
+        {
+            return message.Replace("{", "{{").Replace("}", "}}");
         }
 
         private async void OnCloseAsync(object sender, EventArgs e)
@@ -395,8 +406,11 @@ namespace CarloSharp
                 _app.DebugServer("pathname: {0}", pathname);
 
                 if (entry.BaseUrl != null) 
-                {
-                    //TODO: request.DeferToBrowser({ url: String(new URL(pathname, baseURL)) });
+                {                    
+                    var @params = JObject.Parse(string.Format("{{url: '{0}'}}", new Uri(new Uri(entry.BaseUrl), pathname)));
+
+                    await request.DeferToBrowserAsync(@params);
+
                     return;
                 }
                 

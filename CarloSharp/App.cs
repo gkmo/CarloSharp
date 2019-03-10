@@ -222,18 +222,14 @@ namespace CarloSharp
             await MainWindow.LoadAsync(uri, options);
         }
 
-        // public async Task ServeFolderAsync(string folderPath)
-        // {
-        //     var host = CreateWebHostBuilder(folderPath).Build();
-
-        //     _hosts.Add(host);
-
-        //     await host.RunAsync();
-        // }
-
         public void ServeFolder(string folderPath = "", string prefix = "")
         {
-            this._www.Add(new ServingItem() { Prefix = WrapPrefix(prefix), Folder = folderPath });
+            _www.Add(new ServingItem() { Prefix = WrapPrefix(prefix), Folder = folderPath });
+        }
+
+        public void ServeOrigin(string baseUrl = "", string prefix = "")
+        {
+            _www.Add(new ServingItem() { Prefix = WrapPrefix(prefix), BaseUrl = baseUrl });
         }
 
         public async Task ExposeFunctionAsync<T, TResult>(string name, Func<T, TResult> function)
@@ -278,12 +274,12 @@ namespace CarloSharp
 
         internal void DebugApp(string message, params string[] args)
         {
-            Carlo.Logger?.Debug(EscapeCurlyBraces(message), args);
+            Carlo.Logger?.Debug(message, args);
         }
 
         internal void DebugServer(string message, params string[] args)
         {
-            Carlo.Logger?.Debug(EscapeCurlyBraces(message), args);
+            Carlo.Logger?.Debug(message, args);
         }
 
         internal static string WrapPrefix(string prefix) 
@@ -299,11 +295,6 @@ namespace CarloSharp
             }
             
             return prefix;
-        }
-
-        private static string EscapeCurlyBraces(string message)
-        {
-            return message.Replace("{", "{{").Replace("}", "}}");
         }
     }
 }
