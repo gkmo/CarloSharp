@@ -2,7 +2,7 @@
 
 Web rendering surface for .NET applications.
 
-This is a port of the Google Carlo project (<https://github.com/GoogleChromeLabs/carlo)> to .NET
+This is a port of the Google Carlo project (<https://github.com/GoogleChromeLabs/carlo>) to .NET
 
 ## Requirements ##
 
