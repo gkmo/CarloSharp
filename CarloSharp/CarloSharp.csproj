@@ -7,11 +7,12 @@
     <RepositoryUrl>https://github.com/gkmo/carlosharp</RepositoryUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>Web rendering surface for .NET applications</Description>
-    <PackageTags>Chromium Desktop HTML5 UI</PackageTags>
+    <PackageTags>Chromium Desktop HTML5 UI DotNet</PackageTags>
     <PackageId>CarloSharp</PackageId>
     <Product>CarloSharp</Product>
     <AssemblyName>CarloSharp</AssemblyName>
     <RootNamespace>CarloSharp</RootNamespace>
+    <PackageLicenseUrl>https://github.com/gkmo/carlosharp/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
   <ItemGroup>

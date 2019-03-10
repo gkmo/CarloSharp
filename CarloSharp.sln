@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Angular", "Samples\Angular\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CarloSharp", "CarloSharp\CarloSharp.csproj", "{E0FABF68-CC41-4C53-8203-05B05E604895}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Angular.HotReload", "Samples\AngularHotReload\Angular.HotReload.csproj", "{B46F692C-74D2-4575-843A-DF13790AF2C8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,10 @@ Global
 		{E0FABF68-CC41-4C53-8203-05B05E604895}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0FABF68-CC41-4C53-8203-05B05E604895}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0FABF68-CC41-4C53-8203-05B05E604895}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B46F692C-74D2-4575-843A-DF13790AF2C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B46F692C-74D2-4575-843A-DF13790AF2C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B46F692C-74D2-4575-843A-DF13790AF2C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B46F692C-74D2-4575-843A-DF13790AF2C8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -43,6 +49,7 @@ Global
 		{2DDF6E16-8DD5-4252-9C5F-8BC85057888C} = {CC3A53DF-D45B-4242-88A4-8EBA7AA99EB5}
 		{A314B301-3062-42BE-92E6-91E2E4613D4C} = {CC3A53DF-D45B-4242-88A4-8EBA7AA99EB5}
 		{62D0EBF7-1FA3-4368-B154-9B8BE80C7626} = {CC3A53DF-D45B-4242-88A4-8EBA7AA99EB5}
+		{B46F692C-74D2-4575-843A-DF13790AF2C8} = {CC3A53DF-D45B-4242-88A4-8EBA7AA99EB5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A5385626-6319-4D10-83CF-5D35142C901D}
