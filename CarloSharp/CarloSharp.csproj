@@ -13,6 +13,9 @@
     <AssemblyName>CarloSharp</AssemblyName>
     <RootNamespace>CarloSharp</RootNamespace>
     <PackageLicenseUrl>https://github.com/gkmo/carlosharp/blob/master/LICENSE</PackageLicenseUrl>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

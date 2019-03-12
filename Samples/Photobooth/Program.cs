@@ -28,7 +28,7 @@ namespace Photobooth
 
             _app.LoadAsync("index.html").Wait();
 
-            _app.OnExit += OnAppExit;
+            _app.Exit += OnAppExit;
 
             _exitEvent.WaitOne();
         }

@@ -26,7 +26,7 @@ namespace CarloSharp.Samples.Angular
 
             app.LoadAsync("index.html").Wait();
 
-            app.OnExit += OnAppExit;
+            app.Exit += OnAppExit;
 
             _exitEvent.WaitOne();
         }

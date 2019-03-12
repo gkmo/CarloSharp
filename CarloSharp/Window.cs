@@ -40,11 +40,13 @@ namespace CarloSharp
             _page = page;
             _page.Close += OnCloseAsync;
             _page.DOMContentLoaded += OnDocumentLoadedAsync;
-
+            _page.Load += OnPageLoad;
             _options = options;
         }
 
         public event EventHandler<IpcMessageEventArgs> IpcMessageReceived;
+
+        public event EventHandler Load;
 
         public string LoadURI
         {
@@ -182,6 +184,11 @@ namespace CarloSharp
             await SetBoundsAsync(bounds);
         }
 
+        private void OnPageLoad(object sender, EventArgs e)
+        {
+            Load?.Invoke(this, e);
+        }
+
         private async void OnDocumentLoadedAsync(object sender, EventArgs e)
         {
             await ConfigureIpcMethodsOnceAsync();
@@ -193,7 +200,8 @@ namespace CarloSharp
 
             streamReader.Close();
 
-            script += $@"window.ipc = new Ipc({_windowId});";
+            script += $@"window.ipc = new Ipc({_windowId});
+                window.dispatchEvent(new Event('ipc-initialized'));";
 
             await EvaluateAsync(script);
 

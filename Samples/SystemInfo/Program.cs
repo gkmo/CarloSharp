@@ -28,7 +28,7 @@ namespace SystemInfo
 
             app.LoadAsync("index.html").Wait();
 
-            app.OnExit += OnAppExit;
+            app.Exit += OnAppExit;
 
             _exitEvent.WaitOne();
         }

@@ -23,7 +23,7 @@ namespace CarloSharp.Samples.Angular.HotReload
                 Channel = new string[] { "stable" }
             }).Result;
 
-            app.OnExit += App_OnExit;
+            app.Exit += App_OnExit;
 
             app.ServeOrigin("https://localhost:5001");
 
