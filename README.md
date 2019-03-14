@@ -6,7 +6,7 @@ This is a port of the Google Carlo project (<https://github.com/GoogleChromeLabs
 
 ## Requirements ##
 
-.NET Core SDK 2.1+ (<https://www.microsoft.com/net/learn/get-started/windows)>
+.NET Core SDK 2.1+ (<https://www.microsoft.com/net/learn/get-started/windows>)
 
 For the Angular and React samples Node JS (<https://nodejs.org/en/)> is also required.
 
@@ -23,8 +23,8 @@ After this step you can build and run the project using:
 ![alt text](Samples/LinuxAngular01.png "Carlo# Running Angular sample on Linux")
 
 ```cs
+
 using CarloSharp.Samples.Angular.Controllers;
-using CarloSharp;
 using System;
 using System.Threading;
 
@@ -36,21 +36,21 @@ namespace CarloSharp.Samples.Angular
 
         public static void Main(string[] args)
         {
-            var app = Carlo.LaunchAsync(new Options()
+            var app = Carlo.Launch(new Options()
             {
                 Title = "Carlo# - Angular",
                 Width = 1024,
                 Height = 600,
                 Channel = new string[] { "stable" }
-            }).Result;
+            });
 
             var controller = new WeatherForecastController(app.MainWindow);
 
             app.ServeFolder("./wwwroot/dist");
 
-            app.LoadAsync("index.html").Wait();
+            app.Load("index.html");
 
-            app.OnExit += OnAppExit;
+            app.Exit += OnAppExit;
 
             _exitEvent.WaitOne();
         }
@@ -72,6 +72,13 @@ namespace CarloSharp.Samples.Angular.Controllers
 {
     public class WeatherForecastController
     {
+        class WeatherForecastArgs
+        {
+            public string City { get; set; }
+
+            public bool UseCelsius { get; set; }
+        }
+
         private static string[] Summaries = new[]
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -79,10 +86,20 @@ namespace CarloSharp.Samples.Angular.Controllers
 
         public WeatherForecastController(Window window)
         {
-            window.ExposeFunctionAsync("getWeatherForecasts", GetWeatherForecasts).Wait();
+            window.IpcMessageReceived += OnIpcMessageReceived;
         }
 
-        public WeatherForecast[] GetWeatherForecasts()
+        private void OnIpcMessageReceived(object sender, IpcMessageEventArgs e)
+        {
+            if (e.Channel == "getWeatherForecasts")
+            {
+                var args = e.Message.ToObject<WeatherForecastArgs>();
+
+                e.Result = GetWeatherForecasts(args.City, args.UseCelsius);
+            }
+        }
+
+        private WeatherForecast[] GetWeatherForecasts(string city, bool useCelsius)
         {
             var random = new Random();
 
@@ -101,7 +118,13 @@ namespace CarloSharp.Samples.Angular.Controllers
 ```typescript
 import { Component } from '@angular/core';
 
-declare function getWeatherForecasts(): Promise<WeatherForecast[]>;
+interface Ipc {
+  sendSync(channel : string, message : any) : any;
+}
+
+declare global {
+  interface Window { ipc: Ipc; }
+}
 
 @Component({
   selector: 'app-fetch-data',
@@ -115,7 +138,7 @@ export class FetchDataComponent {
   }
 
   async loadAsync() {
-    this.forecasts = await getWeatherForecasts();
+    this.forecasts = await window.ipc.sendSync('getWeatherForecasts', { City: 'New York', UseCelsius: true });
   }
 }
 
