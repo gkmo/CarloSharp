@@ -21,7 +21,7 @@ namespace CarloSharp.Samples.Angular.HotReload
                 Width = 1024,
                 Height = 600,
                 Channel = new string[] { "stable" }
-            }).Result;
+            });
 
             app.Exit += App_OnExit;
 
