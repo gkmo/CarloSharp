@@ -20,13 +20,13 @@ namespace SystemInfo
                 Height = 500,
                 Channel = new string[] { "canary", "stable" },
                 Icon = "./app_icon.png",
-            }).Result;
+            });
 
             app.ServeFolder("./www");
 
-            app.ExposeFunctionAsync<JObject>("systeminfo", GetSystemInfo).Wait();
+            app.ExposeFunctionAsync("systeminfo", GetSystemInfo).Wait();
 
-            app.LoadAsync("index.html").Wait();
+            app.Load("index.html");
 
             app.Exit += OnAppExit;
 
@@ -35,11 +35,23 @@ namespace SystemInfo
 
         private static JObject GetSystemInfo()
         {
-            var result = new JObject()
+            var result = new JObject();
+
+            result["cpu"] = new JObject
             {
-                { "battery", "" },
-                { "cpu", ""},
-                { "osInfo", Environment.OSVersion.ToString() }
+                { "cores", Environment.ProcessorCount }
+            };
+
+            result["osInfo"] = new JObject
+            {
+                { "platform", Environment.OSVersion.Platform.ToString() },
+                { "version", Environment.OSVersion.VersionString },
+                { "64 bits", Environment.Is64BitOperatingSystem }
+            };
+
+            result[".net"] = new JObject
+            {
+                { "version", Environment.Version.ToString() }
             };
 
             return result;
