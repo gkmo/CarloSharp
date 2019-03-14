@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>CarloSharp.Samples.HelloWorld</RootNamespace>
+    <AssemblyName>CarloSharp.Samples.HelloWorld</AssemblyName>
+    <ApplicationIcon />
+    <StartupObject />
+  </PropertyGroup>
+
+  <!-- Copies wwwroot to the output folder -->
+  <ItemGroup>
+    <Content Include="wwwroot\*.*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>  
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="PuppeteerSharp" Version="1.12.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\CarloSharp\CarloSharp.csproj" />
+  </ItemGroup>
+
+</Project>

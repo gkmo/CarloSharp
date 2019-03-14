@@ -12,7 +12,7 @@ namespace SystemInfo
 
         static void Main(string[] args)
         {
-            var app = Carlo.LaunchAsync(new Options()
+            var app = Carlo.Launch(new Options()
             {
                 BgColor = Color.FromArgb(0x2b, 0x2e, 0x3b),
                 Title = "Carlo# - Systeminfo App",

@@ -222,6 +222,11 @@ namespace CarloSharp
             await MainWindow.LoadAsync(uri, options);
         }
 
+        public void Load(string uri, Options options = null)
+        {
+            LoadAsync(uri, options).Wait();
+        }
+
         public void ServeFolder(string folderPath = "", string prefix = "")
         {
             _www.Add(new ServingItem() { Prefix = WrapPrefix(prefix), Folder = folderPath });

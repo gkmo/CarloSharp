@@ -40,7 +40,6 @@ namespace CarloSharp
             _page = page;
             _page.Close += OnCloseAsync;
             _page.DOMContentLoaded += OnDocumentLoadedAsync;
-            _page.Load += OnPageLoad;
             _options = options;
         }
 
@@ -107,7 +106,7 @@ namespace CarloSharp
 
         public async Task SendIpcMessageAsync(string channel, string message)
         {
-            var script = $@"window.ipc.__receiveIpcMessage({_windowId}, '{channel}', '{message}');";
+            var script = $@"window.ipc.__receiveIpcMessage('{channel}', '{message}');";
 
             await EvaluateAsync(script);
         }
@@ -155,7 +154,9 @@ namespace CarloSharp
 
             var window = await getWindowForTargetTask;
 
-            await InitBoundsAsync(window);            
+            await InitBoundsAsync(window);
+
+            await ConfigureIpcMethodsOnceAsync();
         }
 
         private async Task ConfigureIpcMethodsOnceAsync()
@@ -164,8 +165,8 @@ namespace CarloSharp
             {
                 _ipcConfigured = true;
 
-                await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageAsync", ReceiveIpcMessageAsync);
-                await ExposeFunctionAsync<int, string, JToken, JToken>("__sendIpcMessageSync", ReceiveIpcMessageSync);
+                await ExposeFunctionAsync<string, JToken, JToken>("__sendIpcMessageAsync", ReceiveIpcMessageAsync);
+                await ExposeFunctionAsync<string, JToken, JToken>("__sendIpcMessageSync", ReceiveIpcMessageSync);
             }                           
         }
 
@@ -184,26 +185,20 @@ namespace CarloSharp
             await SetBoundsAsync(bounds);
         }
 
-        private void OnPageLoad(object sender, EventArgs e)
-        {
-            Load?.Invoke(this, e);
-        }
-
         private async void OnDocumentLoadedAsync(object sender, EventArgs e)
         {
-            await ConfigureIpcMethodsOnceAsync();
+            string script = LoadIpcJavaScript();
 
-            var assembly = typeof(Window).Assembly;
-            var streamReader = new StreamReader(assembly.GetManifestResourceStream("CarloSharp.Scripts.Ipc.js"));
+            script += @"
+            var checkBackendProcess = function() {
+                if (window.__lastBackendPing < new Date().getTime() - 1000) {
+                    window.close(); 
+                }
+            };
 
-            var script = streamReader.ReadToEnd();
+            setInterval(checkBackendProcess, 1000);";
 
-            streamReader.Close();
-
-            script += $@"window.ipc = new Ipc({_windowId});
-                window.dispatchEvent(new Event('ipc-initialized'));";
-
-            await EvaluateAsync(script);
+            await _page.AddScriptTagAsync(new AddTagOptions() { Content = script });
 
             var pingUiThread = new Thread(async () =>
             {
@@ -223,20 +218,20 @@ namespace CarloSharp
 
             pingUiThread.IsBackground = true;
             pingUiThread.Start();
-
-            script = @"
-            var checkBackendProcess = function() {
-                if (window.__lastBackendPing < new Date().getTime() - 1000) {
-                    window.close(); 
-                }
-            };
-
-            setInterval(checkBackendProcess, 1000);";
-
-            await EvaluateAsync(script);
         }
 
-        private JToken ReceiveIpcMessageAsync(int windowId, string channel, JToken message)
+        private static string LoadIpcJavaScript()
+        {
+            var assembly = typeof(Window).Assembly;
+            var streamReader = new StreamReader(assembly.GetManifestResourceStream("CarloSharp.Scripts.Ipc.js"));
+
+            var script = streamReader.ReadToEnd();
+
+            streamReader.Close();
+            return script;
+        }
+
+        private JToken ReceiveIpcMessageAsync(string channel, JToken message)
         {
             _app.DebugServer("Received Async Ipc Message: " + EscapeCurlyBraces(message.ToString()) + " on channel :" + channel);
 
@@ -248,7 +243,7 @@ namespace CarloSharp
             return null;
         }
 
-        private JToken ReceiveIpcMessageSync(int windowId, string channel, JToken message)
+        private JToken ReceiveIpcMessageSync(string channel, JToken message)
         {
             _app.DebugServer("Received Sync Ipc Message: " + EscapeCurlyBraces(message.ToString()) + " on channel :" + channel);
 
@@ -312,7 +307,7 @@ namespace CarloSharp
                 return;
             }
 
-            if (this._www.Count + _app.WWW.Count == 0 && _httpHandler == null && _app.HttpHandler == null)
+            if (_www.Count + _app.WWW.Count == 0 && _httpHandler == null && _app.HttpHandler == null)
             {
                 return;
             }

@@ -1,16 +1,15 @@
 ﻿class Ipc {
 
-    constructor(windowId) {
-        this.windowId = windowId;
+    constructor() {
         this.callbacks = new Map();
     }
 
     send(channel, message) {
-        __sendIpcMessageAsync(this.windowId, channel, message);
+        __sendIpcMessageAsync(channel, message);
     }
 
     sendSync(channel, message) {
-        return __sendIpcMessageSync(this.windowId, channel, message);
+        return __sendIpcMessageSync(channel, message);
     }
 
     on(channel, callback) {
@@ -22,7 +21,7 @@
             this.callbacks.set(channel, new Array(callback));
         }
         
-        console.log('listening on ' + channel);
+        console.trace('listening on ' + channel);
     }
 
     off(channel, callback) {
@@ -37,20 +36,24 @@
         }
     }
 
-    __receiveIpcMessage(windowId, channel, message) {
-        console.log('received: ' + message + ' on ' + channel);
+    __receiveIpcMessage(channel, message) {
+        console.trace('received: ' + message + ' on ' + channel);
 
         var listeners = this.callbacks.get(channel);
 
         if (listeners !== undefined) {
-            for (i = 0; i < listeners.lenngth; i++) {
+            for (var i = 0; i < listeners.length; i++) {
                 var callback = listeners[i];
                 if (callback !== undefined) {
-                    callback[i](windowId, message);
+                    callback(message);
                 }
             }
         } else {
-            console.log('Nobody listenning on ' + channel);
+            console.trace('Nobody listenning on ' + channel);
         }
     }
 }
+
+window.ipc = new Ipc();
+
+window.dispatchEvent(new Event('ipc-intialized'));

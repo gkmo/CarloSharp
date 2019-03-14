@@ -15,7 +15,7 @@ namespace CarloSharp.Samples.Angular.HotReload
 
             var runTask = _host.RunAsync();
 
-            var app = Carlo.LaunchAsync(new Options()
+            var app = Carlo.Launch(new Options()
             {
                 Title = "Carlo# - Angular with hot reload",
                 Width = 1024,
