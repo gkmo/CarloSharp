@@ -19,6 +19,11 @@ namespace CarloSharp
 
         public static ILogger Logger { get; set; }
 
+        public static App Launch(Options options)
+        {
+            return LaunchAsync(options).Result;
+        }
+
         public static async Task<App> LaunchAsync(Options options)
         {
             if (options.BgColor == Color.Empty)

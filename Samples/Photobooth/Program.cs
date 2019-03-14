@@ -3,7 +3,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Photobooth
 {
@@ -14,21 +13,21 @@ namespace Photobooth
 
         static void Main(string[] args)
         {
-            _app = Carlo.LaunchAsync(new Options()
+            _app = Carlo.Launch(new Options()
             {
                 Title = "Photobooth",
                 Width = 800,
                 Height = 648 + 24,
                 Channel = new string[] { "canary" }
-            }).Result;
+            });
 
             _app.ServeFolder("./www");
 
             _app.ExposeFunctionAsync<string, JObject>("saveImage", SaveImage).Wait();
 
-            _app.LoadAsync("index.html").Wait();
+            _app.Load("index.html");
 
-            _app.OnExit += OnAppExit;
+            _app.Exit += OnAppExit;
 
             _exitEvent.WaitOne();
         }

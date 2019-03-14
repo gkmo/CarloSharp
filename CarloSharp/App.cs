@@ -32,8 +32,8 @@ namespace CarloSharp
             _windowSeq = 0;
         }
 
-        public event EventHandler OnExit;
-        public event EventHandler<WindowEventArgs> OnWindowCreated;
+        public event EventHandler Exit;
+        public event EventHandler<WindowEventArgs> WindowCreated;
 
         internal CDPSession Session {  get { return _session; } }
 
@@ -143,12 +143,12 @@ namespace CarloSharp
 
             await _browser.CloseAsync();
 
-            OnExit?.Invoke(this, EventArgs.Empty);
+            Exit?.Invoke(this, EventArgs.Empty);
         }
 
         private void RaiseWindowCreatedEvent(Window window)
         {
-            OnWindowCreated?.Invoke(this, new WindowEventArgs(window));
+            WindowCreated?.Invoke(this, new WindowEventArgs(window));
         }
 
         private async void OnBrowserTargetCreated(object sender, TargetChangedArgs e)
@@ -220,6 +220,11 @@ namespace CarloSharp
         public async Task LoadAsync(string uri, Options options = null)
         {
             await MainWindow.LoadAsync(uri, options);
+        }
+
+        public void Load(string uri, Options options = null)
+        {
+            LoadAsync(uri, options).Wait();
         }
 
         public void ServeFolder(string folderPath = "", string prefix = "")
