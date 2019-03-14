@@ -20,8 +20,6 @@
         } else {
             this.callbacks.set(channel, new Array(callback));
         }
-        
-        console.trace('listening on ' + channel);
     }
 
     off(channel, callback) {
@@ -37,8 +35,6 @@
     }
 
     __receiveIpcMessage(channel, message) {
-        console.trace('received: ' + message + ' on ' + channel);
-
         var listeners = this.callbacks.get(channel);
 
         if (listeners !== undefined) {
@@ -48,8 +44,6 @@
                     callback(message);
                 }
             }
-        } else {
-            console.trace('Nobody listenning on ' + channel);
         }
     }
 }
