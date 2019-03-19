@@ -113,7 +113,9 @@ namespace CarloSharp
 
         public async Task SendIpcMessageAsync(string channel, JObject obj)
         {
-            await SendIpcMessageAsync(channel, obj.ToString());
+            var script = $@"window.ipc.__receiveIpcMessage('{channel}', {obj});";
+
+            await EvaluateAsync(script);
         }
 
         internal async Task InitAsync()
@@ -416,20 +418,40 @@ namespace CarloSharp
 
                     return;
                 }
-                
-                var fileName = Path.Combine(entry.Folder, pathname);
 
-                if (!File.Exists(fileName))
+                var headers = new Dictionary<string, string>()
                 {
-                    continue;
-                }
-
-                var headers = new Dictionary<string, string>() 
-                { 
-                    {"content-type", ContentType(request, fileName)} 
+                    {"content-type", ContentType(request, pathname)}
                 };
-                
-                var body = File.ReadAllBytes(fileName);
+
+                byte[] body;
+
+                if (entry.Assembly != null)
+                {
+                    var stream = entry.Assembly.GetManifestResourceStream(entry.DefaultNamespace + "." + pathname.Replace('/', '.'));
+
+                    if (stream == null)
+                    {
+                        continue;
+                    }
+
+                    body = new byte[stream.Length];
+
+                    stream.Read(body, 0, body.Length);
+
+                    stream.Close();
+                }
+                else
+                {
+                    var fileName = Path.Combine(entry.Folder, pathname);
+
+                    if (!File.Exists(fileName))
+                    {
+                        continue;
+                    }
+
+                    body = File.ReadAllBytes(fileName);
+                }
 
                 await request.FulfillAsync(null, headers, body);
                 
