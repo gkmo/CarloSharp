@@ -4,6 +4,18 @@ Web rendering surface for .NET applications.
 
 This is a port of the Google Carlo project (<https://github.com/GoogleChromeLabs/carlo>) to .NET
 
+## Nuget package
+
+Nuget page: <https://www.nuget.org/packages/CarloSharp/1.0.4>
+
+Adding the package using Package Manager:
+
+> Install-Package CarloSharp -Version 1.0.4
+
+Adding the package using .Net CLI:
+
+> dotnet add package CarloSharp --version 1.0.4
+
 ## Requirements ##
 
 .NET Core SDK 2.1+ (<https://www.microsoft.com/net/learn/get-started/windows>)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -33,9 +34,10 @@ namespace CarloSharp
         }
 
         public event EventHandler Exit;
+
         public event EventHandler<WindowEventArgs> WindowCreated;
 
-        internal CDPSession Session {  get { return _session; } }
+        internal CDPSession Session { get { return _session; } }
 
         internal IList<ServingItem> WWW { get { return _www.AsReadOnly(); } }
 
@@ -48,87 +50,6 @@ namespace CarloSharp
         }
 
         public RequestHandlerAsync HttpHandler { get; set; }
-
-        internal async Task InitAsync()
-        {
-            DebugApp("Configuring browser");
-
-            var createSessionTask = _browser.Target.CreateCDPSessionAsync();
-
-            var overridePermissionsTask =_browser.DefaultContext.OverridePermissionsAsync("https://domain", 
-                new OverridePermission[] {
-                    OverridePermission.Geolocation,
-                    OverridePermission.Midi,
-                    OverridePermission.Notifications,
-                    OverridePermission.Camera,
-                    OverridePermission.Microphone,
-                    OverridePermission.ClipboardRead,
-                    OverridePermission.ClipboardWrite });
-
-            var pagesTask = _browser.PagesAsync();
-
-            _session = await createSessionTask;
-
-            var page = (await pagesTask)[0];
-
-            if (_options.Icon != null)
-            {
-                await SetIconAsync(_options.Icon);
-            }
-
-            _browser.TargetCreated += OnBrowserTargetCreated;
-
-            // Simulate the pageCreated sequence.
-            _pendingWindows.Add("", new Tuple<Options, Action<Window>>(_options, null));
-
-            await OnPageCreatedAsync(page);           
-        }
-
-        private async Task OnPageCreatedAsync(Page page)
-        {
-            var url = page.Url;
-
-            DebugApp("Page created at {0}", url);
-
-            var seq = url.StartsWith("about:blank?seq=") ? url.Substring("about:blank?seq=".Length) : "";
-
-            if (!_pendingWindows.TryGetValue(seq, out var p))
-            {
-                return;
-            }
-
-            var options = p.Item1;
-            var callback = p.Item2;
-
-            if (options == null)
-            {
-                options = _options;
-            }
-            
-            _pendingWindows.Remove(seq);
-
-            var window = new Window(this, page, options);
-
-            await window.InitAsync();
-
-            _windows.Add(window);
-
-            callback?.Invoke(window);
-
-            RaiseWindowCreatedEvent(window);
-        }
-
-        internal async Task WindownClosedAsync(Window window)
-        {
-            DebugApp("Window closed {0}", window.LoadURI);
-
-            _windows.Remove(window);
-
-            if (_windows.Count == 0)
-            {
-                await ExitAsync();
-            }
-        }
 
         public async Task ExitAsync()
         {
@@ -144,23 +65,6 @@ namespace CarloSharp
             await _browser.CloseAsync();
 
             Exit?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void RaiseWindowCreatedEvent(Window window)
-        {
-            WindowCreated?.Invoke(this, new WindowEventArgs(window));
-        }
-
-        private async void OnBrowserTargetCreated(object sender, TargetChangedArgs e)
-        {
-            var page = await e.Target.PageAsync();
-
-            if (page == null)
-            {
-                return;
-            }
-
-            await OnPageCreatedAsync(page);
         }
 
         public Window CreateWindow(Options options = null)
@@ -216,7 +120,7 @@ namespace CarloSharp
 
             return newWindow;
         }
-        
+
         public async Task LoadAsync(string uri, Options options = null)
         {
             await MainWindow.LoadAsync(uri, options);
@@ -235,6 +139,11 @@ namespace CarloSharp
         public void ServeOrigin(string baseUrl = "", string prefix = "")
         {
             _www.Add(new ServingItem() { Prefix = WrapPrefix(prefix), BaseUrl = baseUrl });
+        }
+
+        public void ServeAssembly(Assembly assembly, string @namespace, string prefix = "")
+        {
+            _www.Add(new ServingItem() { Prefix = WrapPrefix(prefix), Assembly = assembly, DefaultNamespace = @namespace });
         }
 
         public async Task ExposeFunctionAsync<T, TResult>(string name, Func<T, TResult> function)
@@ -274,8 +183,55 @@ namespace CarloSharp
                 { "image", Convert.ToBase64String(buffer) }
             };
 
-            await _session.SendAsync("Browser.setDockTile", iconObject);       
-        }        
+            await _session.SendAsync("Browser.setDockTile", iconObject);
+        }
+
+        internal async Task InitAsync()
+        {
+            DebugApp("Configuring browser");
+
+            var createSessionTask = _browser.Target.CreateCDPSessionAsync();
+
+            var overridePermissionsTask = _browser.DefaultContext.OverridePermissionsAsync("https://domain",
+                new OverridePermission[] {
+                    OverridePermission.Geolocation,
+                    OverridePermission.Midi,
+                    OverridePermission.Notifications,
+                    OverridePermission.Camera,
+                    OverridePermission.Microphone,
+                    OverridePermission.ClipboardRead,
+                    OverridePermission.ClipboardWrite });
+
+            var pagesTask = _browser.PagesAsync();
+
+            _session = await createSessionTask;
+
+            var page = (await pagesTask)[0];
+
+            if (_options.Icon != null)
+            {
+                await SetIconAsync(_options.Icon);
+            }
+
+            _browser.TargetCreated += OnBrowserTargetCreated;
+
+            // Simulate the pageCreated sequence.
+            _pendingWindows.Add("", new Tuple<Options, Action<Window>>(_options, null));
+
+            await OnPageCreatedAsync(page);
+        }
+
+        internal async Task WindownClosedAsync(Window window)
+        {
+            DebugApp("Window closed {0}", window.LoadURI);
+
+            _windows.Remove(window);
+
+            if (_windows.Count == 0)
+            {
+                await ExitAsync();
+            }
+        }
 
         internal void DebugApp(string message, params string[] args)
         {
@@ -287,19 +243,70 @@ namespace CarloSharp
             Carlo.Logger?.Debug(message, args);
         }
 
-        internal static string WrapPrefix(string prefix) 
+        private static string WrapPrefix(string prefix)
         {
-            if (!prefix.StartsWith("/")) 
+            if (!prefix.StartsWith("/"))
             {
                 prefix = '/' + prefix;
             }
 
-            if (!prefix.EndsWith("/")) 
+            if (!prefix.EndsWith("/"))
             {
                 prefix += '/';
             }
-            
+
             return prefix;
+        }
+
+        private async Task OnPageCreatedAsync(Page page)
+        {
+            var url = page.Url;
+
+            DebugApp("Page created at {0}", url);
+
+            var seq = url.StartsWith("about:blank?seq=") ? url.Substring("about:blank?seq=".Length) : "";
+
+            if (!_pendingWindows.TryGetValue(seq, out var p))
+            {
+                return;
+            }
+
+            var options = p.Item1;
+            var callback = p.Item2;
+
+            if (options == null)
+            {
+                options = _options;
+            }
+
+            _pendingWindows.Remove(seq);
+
+            var window = new Window(this, page, options);
+
+            await window.InitAsync();
+
+            _windows.Add(window);
+
+            callback?.Invoke(window);
+
+            RaiseWindowCreatedEvent(window);
+        }
+
+        private void RaiseWindowCreatedEvent(Window window)
+        {
+            WindowCreated?.Invoke(this, new WindowEventArgs(window));
+        }
+
+        private async void OnBrowserTargetCreated(object sender, TargetChangedArgs e)
+        {
+            var page = await e.Target.PageAsync();
+
+            if (page == null)
+            {
+                return;
+            }
+
+            await OnPageCreatedAsync(page);
         }
     }
 }

@@ -160,11 +160,11 @@ namespace CarloSharp
 
             foreach (var folder in desktopInstallationFolders)
             {
-                var executable = FindChromeExecutables(folder);
+                var executableInstallations = FindChromeExecutables(folder);
                 
-                if (!string.IsNullOrEmpty(executable))
+                if (executableInstallations != null)
                 {
-                    installations.Add(executable);
+                    installations.AddRange(executableInstallations);
                 }
             }
 
@@ -260,9 +260,52 @@ namespace CarloSharp
             return proc.StandardOutput.ReadToEnd();
         }
 
-        private static string FindChromeExecutables(string folder)
+        private static List<string> FindChromeExecutables(string folder)
         {
+            var argumentsRegex = @"/ (^[^ ] +).*/"; // Take everything up to the first space
+            var chromeExecRegex = @"^Exec=\/.*\/(google-chrome|chrome|chromium)-.*";
+
+            if (CanAccess(folder))
+            {
+                // Output of the grep & print looks like:
+                //    /opt/google/chrome/google-chrome --profile-directory
+                //    /home/user/Downloads/chrome-linux/chrome-wrapper %U
+                string execPaths;
+
+                // Some systems do not support grep -R so fallback to -r.
+                // See https://github.com/GoogleChrome/chrome-launcher/issues/46 for more context.
+                try
+                {
+                    execPaths = ExecuteBashCommand($"grep - ER \"{chromeExecRegex}\" ${ folder} | awk - F '=' '{{print $2}}'");
+                }
+                catch (Exception)
+                {
+                    execPaths = ExecuteBashCommand($"grep - Er \"{chromeExecRegex}\" ${ folder} | awk - F '=' '{{print $2}}'");
+                }
+
+                var paths = execPaths.Split('\n');
+
+                var installations = new List<string>();
+
+                foreach (var path in paths)
+                {
+                    var newPath = Regex.Replace(path, argumentsRegex, "$1", RegexOptions.IgnoreCase);
+
+                    if (CanAccess(newPath))
+                    {
+                        installations.Add(newPath);
+                    }
+                }
+
+                return installations;
+            }
+
             return null;
+        }
+
+        private static bool CanAccess(string folder)
+        {
+            return !string.IsNullOrEmpty(folder);
         }
 
         private static string FindChromeWin32(bool canary)
