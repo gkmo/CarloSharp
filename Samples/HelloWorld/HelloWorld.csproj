@@ -16,7 +16,7 @@
     </Content>  
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="PuppeteerSharp" Version="1.12.1" />
+    <PackageReference Include="PuppeteerSharp" Version="1.17.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CarloSharp\CarloSharp.csproj" />

@@ -188,7 +188,7 @@ namespace CarloSharp
             
             if (installations.Count == 0)
             {
-                throw new Exception("The environment variable CHROME_PATH must be set to executable of a build of Chromium version 54.0 or later.");
+                return null;
             }
 
             var priorities = new Dictionary<string, int>(){
@@ -262,8 +262,8 @@ namespace CarloSharp
 
         private static List<string> FindChromeExecutables(string folder)
         {
-            var argumentsRegex = @"/ (^[^ ] +).*/"; // Take everything up to the first space
-            var chromeExecRegex = @"^Exec=\/.*\/(google-chrome|chrome|chromium)-.*";
+            var argumentsRegex = @"(^[^ ]+).*"; // Take everything up to the first space
+            var chromeExecRegex = @"^Exec=/.*/(google-chrome|chrome|chromium).*";
 
             if (CanAccess(folder))
             {
@@ -276,11 +276,11 @@ namespace CarloSharp
                 // See https://github.com/GoogleChrome/chrome-launcher/issues/46 for more context.
                 try
                 {
-                    execPaths = ExecuteBashCommand($"grep - ER \"{chromeExecRegex}\" ${ folder} | awk - F '=' '{{print $2}}'");
+                    execPaths = ExecuteBashCommand($"grep -ER \"{chromeExecRegex}\" {folder} | awk -F '=' '{{print $2}}'");
                 }
                 catch (Exception)
                 {
-                    execPaths = ExecuteBashCommand($"grep - Er \"{chromeExecRegex}\" ${ folder} | awk - F '=' '{{print $2}}'");
+                    execPaths = ExecuteBashCommand($"grep -Er \"{chromeExecRegex}\" {folder} | awk -F '=' '{{print $2}}'");
                 }
 
                 var paths = execPaths.Split('\n');

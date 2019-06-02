@@ -264,3 +264,4 @@ __pycache__/
 Samples/*/.local-dataprofile-*/
 Samples/Photobooth/pictures/
 Samples/Angular/ClientApp/dist/
+Samples/Photobooth/.local-chromium
