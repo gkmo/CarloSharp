@@ -16,7 +16,7 @@ namespace CarloSharp.Samples.Angular
                 Title = "Carlo# - Angular",
                 Width = 1024,
                 Height = 600,
-                Channel = new string[] { "stable" }
+                Channel = new string[] { "*" }
             });
 
             var controller = new WeatherForecastController(app.MainWindow);

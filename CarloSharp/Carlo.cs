@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using PuppeteerSharp;
@@ -106,7 +107,11 @@ namespace CarloSharp
 
             if (options.Channel.Contains("canary") || options.Channel.Contains("*"))
             {
-                if (Environment.OSVersion.Platform == PlatformID.Unix)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    executablePath = FindChromeDarwin(true);
+                }
+                else if (Environment.OSVersion.Platform == PlatformID.Unix)
                 {
                     executablePath = FindChromeLinux(true);
                 }
@@ -123,7 +128,11 @@ namespace CarloSharp
 
             if (options.Channel.Contains("stable") || options.Channel.Contains("*"))
             {
-                if (Environment.OSVersion.Platform == PlatformID.Unix)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    executablePath = FindChromeDarwin(false);
+                }
+                else if (Environment.OSVersion.Platform == PlatformID.Unix)
                 {
                     executablePath = FindChromeLinux(false);
                 }
@@ -143,6 +152,40 @@ namespace CarloSharp
                 var revisionInfo = DownloadChromiumAsync(new BrowserFetcherOptions()).Result;
 
                 return new Tuple<string, string>(revisionInfo.ExecutablePath, revisionInfo.Revision.ToString());
+            }
+
+            return null;
+        }
+
+        private static string FindChromeDarwin(bool canary)
+        {
+            const string LSREGISTER = "/System/Library/Frameworks/CoreServices.framework" +
+                                    "/Versions/A/Frameworks/LaunchServices.framework" +
+                                    "/Versions/A/Support/lsregister";
+
+            string grepexpr = canary ? "google chrome canary" : "google chrome";
+
+            var command = string.Format("{0} -dump | grep -i '{1}\\?.app$'", LSREGISTER, grepexpr) + " | awk '{$1=\"\"; print $0}'";
+            
+            var result = ExecuteBashCommand(command);
+
+            var paths = result.Split('\n').Select(p => p.Trim()).ToList();
+
+            paths.Insert(0, canary ? "/Applications/Google Chrome Canary.app" : "/Applications/Google Chrome.app");
+
+            foreach (var p in paths)
+            {
+                if (p.StartsWith("/Volumes")) 
+                {
+                    continue;
+                }
+
+                var inst = Path.Combine(p, canary ? "Contents/MacOS/Google Chrome Canary" : "Contents/MacOS/Google Chrome");
+
+                if (CanAccess(inst))
+                {
+                    return inst;
+                }
             }
 
             return null;
@@ -303,9 +346,9 @@ namespace CarloSharp
             return null;
         }
 
-        private static bool CanAccess(string folder)
+        private static bool CanAccess(string path)
         {
-            return !string.IsNullOrEmpty(folder);
+            return !string.IsNullOrEmpty(path) && Directory.Exists(path) || File.Exists(path);
         }
 
         private static string FindChromeWin32(bool canary)
