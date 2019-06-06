@@ -33,6 +33,8 @@ After this step you can build and run the project using:
 `dotnet run`
 
 ![alt text](Samples/LinuxAngular01.png "Carlo# Running Angular sample on Linux")
+![alt text](Samples/MacOSAngular01.png "Carlo# Running Angular sample on MacOS")
+![alt text](Samples/Win10Angular01.png "Carlo# Running Angular sample on Windows")
 
 ```cs
 
