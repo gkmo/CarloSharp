@@ -19,8 +19,9 @@ Adding the package using .Net CLI:
 ## Requirements ##
 
 .NET Core SDK 2.1+ (<https://www.microsoft.com/net/learn/get-started/windows>)
-
+Google Chrome 74+ (If chrome is not available Carlo# will download Chromium when Channel "*" is selected)
 For the Angular and React samples Node JS (<https://nodejs.org/en/)> is also required.
+
 
 ## Building and running the Angular sample ##
 
