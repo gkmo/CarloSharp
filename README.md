@@ -6,15 +6,15 @@ This is a port of the Google Carlo project (<https://github.com/GoogleChromeLabs
 
 ## Nuget package
 
-Nuget page: <https://www.nuget.org/packages/CarloSharp/1.0.4>
+Nuget page: <https://www.nuget.org/packages/CarloSharp/1.0.7>
 
 Adding the package using Package Manager:
 
-> Install-Package CarloSharp -Version 1.0.4
+> Install-Package CarloSharp -Version 1.0.7
 
 Adding the package using .Net CLI:
 
-> dotnet add package CarloSharp --version 1.0.4
+> dotnet add package CarloSharp --version 1.0.7
 
 ## Requirements ##
 
